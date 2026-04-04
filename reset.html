@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reset TATANKA</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: system-ui, sans-serif;
+  background: #111;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+}
+.card {
+  background: #1c1c1e;
+  border-radius: 20px;
+  padding: 36px 24px;
+  max-width: 320px;
+  width: 100%;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+h1 { color: #fff; font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+p { color: rgba(255,255,255,0.5); font-size: 13px; line-height: 1.6; margin-bottom: 24px; }
+.keys { background: #2c2c2e; border-radius: 12px; padding: 14px; margin-bottom: 24px; text-align: left; }
+.key-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.key-row:last-child { border-bottom: none; }
+.key-name { color: rgba(255,255,255,0.4); font-size: 11px; }
+.key-val { color: #c9a227; font-size: 11px; font-weight: 700; }
+.btn-reset {
+  width: 100%;
+  background: #d32f2f;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+.btn-go {
+  width: 100%;
+  background: linear-gradient(135deg,#c9a227,#f0c040);
+  color: #111;
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.success { color: #66bb6a; font-size: 13px; font-weight: 700; margin-bottom: 16px; display: none; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div style="font-size:48px;margin-bottom:12px;">🔧</div>
+  <h1>Reset TATANKA</h1>
+  <p>Pannello riservato al proprietario.<br>Mostra e cancella i dati salvati sul dispositivo.</p>
+
+  <div class="keys" id="keys-display">
+    <div class="key-row">
+      <span class="key-name">Sessione PRO</span>
+      <span class="key-val" id="k-pro">—</span>
+    </div>
+    <div class="key-row">
+      <span class="key-name">Scadenza PRO</span>
+      <span class="key-val" id="k-exp">—</span>
+    </div>
+    <div class="key-row">
+      <span class="key-name">Inizio trial</span>
+      <span class="key-val" id="k-trial">—</span>
+    </div>
+  </div>
+
+  <p class="success" id="success-msg">✅ Dati cancellati con successo!</p>
+
+  <button class="btn-reset" onclick="doReset()">🗑️ Cancella tutti i dati</button>
+  <button class="btn-go" onclick="location.href='/'">→ Vai all'app</button>
+</div>
+
+<script>
+function fmt(ts) {
+  if (!ts) return '—';
+  const d = new Date(parseInt(ts));
+  return d.getDate().toString().padStart(2,'0') + '/' +
+         (d.getMonth()+1).toString().padStart(2,'0') + '/' +
+         d.getFullYear() + ' ' +
+         d.getHours().toString().padStart(2,'0') + ':' +
+         d.getMinutes().toString().padStart(2,'0');
+}
+
+function loadKeys() {
+  try {
+    const pro = localStorage.getItem('tatanka_pro');
+    if (pro) {
+      const d = JSON.parse(pro);
+      document.getElementById('k-pro').textContent = d.ts ? '✅ Attivo' : '—';
+      document.getElementById('k-exp').textContent = d.exp ? fmt(d.exp) : '—';
+    } else {
+      document.getElementById('k-pro').textContent = 'Non presente';
+      document.getElementById('k-exp').textContent = '—';
+    }
+  } catch(e) {
+    document.getElementById('k-pro').textContent = 'Errore lettura';
+  }
+
+  const trial = localStorage.getItem('tatanka_trial_start');
+  document.getElementById('k-trial').textContent = trial ? fmt(trial) : 'Non presente';
+}
+
+function doReset() {
+  // Cancella solo le chiavi di TATANKA, non tutto il localStorage
+  ['tatanka_pro', 'tatanka_trial_start', 'tatanka_pay_ts', 'tatanka_pro_session',
+   'tatanka_pro_email', 'tatanka_payment_pending'].forEach(function(k) {
+    localStorage.removeItem(k);
+  });
+  document.getElementById('success-msg').style.display = 'block';
+  loadKeys();
+}
+
+// Carica dati all'apertura
+loadKeys();
+</script>
+</body>
+</html>

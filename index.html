@@ -10608,7 +10608,7 @@ function ricettaRestart() {
 // ============================================================
 
 const STRIPE_LINK   = 'https://buy.stripe.com/3cIaEX2GZfnVgUIcJ52sM00';
-const APP_BASE_URL  = 'https://tatankanutripro.netlify.app';
+const APP_BASE_URL  = 'https://tatankanutripro.github.io/tatanka';
 const TRIAL_MS      = 3  * 24 * 60 * 60 * 1000;  // 3 giorni
 const PRO_MS        = 30 * 24 * 60 * 60 * 1000;  // 30 giorni
 const RENEW_WARN    = 3  * 24 * 60 * 60 * 1000;  // avviso rinnovo 3gg prima
@@ -10625,7 +10625,7 @@ function _fmt(ts) {
 // ── Checkout Stripe ──────────────────────────────────────────
 // IMPORTANTE: nel Dashboard Stripe → Payment Link → Edit →
 // "Redirect customers to your website" →
-// https://tatankanutripro.netlify.app/?pro=success
+// https://tatankanutripro.github.io/tatanka/?pro=success
 function startStripeCheckout() {
   window.location.href = STRIPE_LINK;
 }
