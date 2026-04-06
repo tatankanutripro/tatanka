@@ -658,10 +658,8 @@ body {
           <input type="number" class="form-input" id="food-qty" placeholder="100" value="100" oninput="updateFoodQty()" style="flex:1;">
           <select class="form-input form-select" id="food-unit" style="flex:1;" onchange="updateFoodQty()">
             <option value="g">grammi</option>
+            <option value="ml">ml</option>
             <option value="portion">porzione</option>
-            <option value="unit">unità</option>
-            <option value="tbsp">cucchiaio</option>
-            <option value="tsp">cucchiaino</option>
           </select>
         </div>
       </div>
@@ -3870,10 +3868,8 @@ function renderDatabaseFoodDetail(listIdx) {
     + '<select id="db-det-unit" onchange="updateDatabaseFoodDetail(' + JSON.stringify(food).replace(/"/g,'&quot;') + ')" '
     + 'style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;background:#fff;">'
     + '<option value="g">grammi</option>'
+    + '<option value="ml">ml</option>'
     + '<option value="portion">porzione</option>'
-    + '<option value="unit">unità</option>'
-    + '<option value="tbsp">cucchiaio</option>'
-    + '<option value="tsp">cucchiaino</option>'
     + '</select></div></div>';
 
   // Aggiungi al pasto
@@ -3899,9 +3895,7 @@ function updateDatabaseFoodDetail(food) {
   const unit = unitEl ? unitEl.value : 'g';
   let grams = qty;
   if(unit === 'portion') grams = (food.portion||100) * qty;
-  else if(unit === 'unit') grams = (food.portion||50) * qty;
-  else if(unit === 'tbsp') grams = 14 * qty;
-  else if(unit === 'tsp')  grams = 5  * qty;
+  else if(unit === 'ml') grams = qty; // ml = grammi per i liquidi
   const m = calcFoodMacros(food, grams);
   const s = id => document.getElementById(id);
   if(s('db-det-cho'))  s('db-det-cho').textContent  = m.cho;
@@ -5490,7 +5484,7 @@ function renderMealsCompact(meals, dayIdx, isTraining, macros) {
 function getFoodUnitLabel(f) {
   const unit = f._unit || 'g';
   const qty  = f._qty  || f.grams || 100;
-  const labels = { g:'g', ml:'ml', portion:'pz', unit:'unità', tbsp:'cucchiaio', tsp:'cucchiaino' };
+  const labels = { g:'g', ml:'ml', portion:'pz' };
   const label = labels[unit] || unit;
   if(unit === 'g' || unit === 'ml') return Math.round(f.grams) + ' ' + label;
   return qty + ' ' + label + ' (' + Math.round(f.grams) + 'g)';
@@ -5500,7 +5494,7 @@ function getFoodQtyDisplay(f) {
   const unit = f._unit || 'g';
   const qty  = f._qty  || f.grams || 100;
   const icons = { g:'', ml:'', portion:'🍽', unit:'✕', tbsp:'🥄', tsp:'🥄' };
-  const labels = { g:'g', ml:'ml', portion:'pz', unit:'unità', tbsp:'cucch.', tsp:'cucch.no' };
+  const labels = { g:'g', ml:'ml', portion:'pz' };
   const icon  = icons[unit]  || '';
   const label = labels[unit] || unit;
   if(unit === 'g' || unit === 'ml') return Math.round(f.grams) + ' ' + label;
@@ -6284,9 +6278,8 @@ function selectFood(idx) {
   // Popola e mostra il pannello dettaglio
   document.getElementById('food-qty').value = APP.selectedFood.portion || 100;
   document.getElementById('food-unit').value =
-    APP.selectedFood.unit === 'unit' ? 'unit' :
-    APP.selectedFood.unit === 'tbsp' ? 'tbsp' :
-    APP.selectedFood.unit === 'tsp'  ? 'tsp'  : 'g';
+    APP.selectedFood.unit === 'ml' ? 'ml' :
+    APP.selectedFood.unit === 'portion' ? 'portion' : 'g';
   document.getElementById('food-detail-content').innerHTML =
     '<div style="font-weight:700;font-size:15px;margin-bottom:4px;">'
     + (APP.selectedFood.n || APP.selectedFood.name || 'Alimento')
@@ -6305,9 +6298,7 @@ function updateFoodQty() {
   const unit=document.getElementById('food-unit')?.value;
   let grams=qty;
   if(unit==='portion') grams=(f.portion||100)*qty;
-  else if(unit==='unit') grams=(f.portion||50)*qty;
-  else if(unit==='tbsp') grams=14*qty;
-  else if(unit==='tsp') grams=5*qty;
+  else if(unit==='ml') grams=qty;
   const macros=calcFoodMacros(f,grams);
   document.getElementById('food-macros-preview').innerHTML=
     '<span class="macro-pill"><span class="macro-dot dot-cho"></span>CHO: '+macros.cho+'g</span>'
@@ -6831,10 +6822,8 @@ function showBrowseFoodDetail(listIdx) {
     + 'style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:10px;'
     + 'font-size:13px;background:#fff;">'
     + '<option value="g">grammi</option>'
+    + '<option value="ml">ml</option>'
     + '<option value="portion">porzione</option>'
-    + '<option value="unit">unità</option>'
-    + '<option value="tbsp">cucchiaio</option>'
-    + '<option value="tsp">cucchiaino</option>'
     + '</select>'
     + '</div></div>'
     // Add to meal button
@@ -6872,9 +6861,7 @@ function updateBrowseDetail() {
   const unit = document.getElementById('bd-unit')?.value || 'g';
   let grams = qty;
   if(unit === 'portion') grams = (food.portion||100)*qty;
-  else if(unit === 'unit') grams = (food.portion||50)*qty;
-  else if(unit === 'tbsp') grams = 14*qty;
-  else if(unit === 'tsp') grams = 5*qty;
+  else if(unit === 'ml') grams = qty;
   const m = calcFoodMacros(food, grams);
   const setVal = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
   setVal('bd-cho',  m.cho);
