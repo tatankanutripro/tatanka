@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.tatanka.nutripro",
+    "sha256_cert_fingerprints": ["EA:10:92:B7:87:37:ED:62:87:41:2C:18:16:BE:F2:D3:4C:E6:48:DC:42:C2:37:75:2B:C3:6B:33:94:59:45:6F"]
+  }
+}]
