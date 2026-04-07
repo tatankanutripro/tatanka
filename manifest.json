@@ -1,0 +1,28 @@
+{
+  "name": "TATANKA Nutrition Pro",
+  "short_name": "TATANKA",
+  "description": "Il tuo assistente nutrizionale personale. Calcola macro, genera piani alimentari e monitora i tuoi progressi.",
+  "start_url": "/tatanka/",
+  "scope": "/tatanka/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#111111",
+  "theme_color": "#111111",
+  "lang": "it",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "fitness", "food"],
+  "screenshots": []
+}
