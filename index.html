@@ -2601,7 +2601,7 @@ function getTutorialSteps(chId) {
         draw: (ctx,t) => {
           drawPhone(ctx,t);
           drawText(ctx,'Macronutrienti oggi',200,45,12,'#fff',700);
-          const macros=[{l:'CHO',c:283,t:516,col:'#e65100'},{l:'PRO',c:148,t:150,col:'#1565c0'},{l:'FAT',c:44,t:42,col:'#6a1b9a'},{l:'KCAL',c:1820,t:1980,col:'#c62828'}];
+          const macros=[{l:'CHO',c:283,t:516,col:'#2e7d32'},{l:'PRO',c:148,t:150,col:'#2e7d32'},{l:'FAT',c:44,t:42,col:'#2e7d32'},{l:'KCAL',c:1820,t:1980,col:'#2e7d32'}];
           macros.forEach((m,i)=>{
             const x=55+i*88; const pct=(m.c/m.t); const ok=pct>=0.95&&pct<=1.05;
             const over=pct>1.05;
@@ -4795,17 +4795,25 @@ function calcMacros(profile) {
 function calcFoodMacros(food,grams) {
   if(!food) return {cho:0,pro:0,fat:0,kcal:0,fiber:0};
   const f=grams/100;
-  return {cho:Math.round(food.cho*f*10)/10,pro:Math.round(food.pro*f*10)/10,
-    fat:Math.round(food.fat*f*10)/10,kcal:Math.round(food.kcal*f),fiber:Math.round((food.fiber||0)*f*10)/10};
+  const cho  = Math.round(food.cho*f*10)/10;
+  const pro  = Math.round(food.pro*f*10)/10;
+  const fat  = Math.round(food.fat*f*10)/10;
+  const fiber= Math.round((food.fiber||0)*f*10)/10;
+  // Kcal sempre calcolate dai macros reali: CHO×4 + PRO×4 + FAT×9
+  const kcal = Math.round(cho*4 + pro*4 + fat*9);
+  return {cho, pro, fat, kcal, fiber};
 }
 function calcConsumedMacros(meals) {
-  let cho=0,pro=0,fat=0,kcal=0;
-  if(!meals) return {cho,pro,fat,kcal};
+  let cho=0,pro=0,fat=0;
+  if(!meals) return {cho,pro,fat,kcal:0};
   Object.values(meals).forEach(foods=>{
     if(!foods) return;
-    foods.forEach(f=>{cho+=(f.total?.cho||0);pro+=(f.total?.pro||0);fat+=(f.total?.fat||0);kcal+=(f.total?.kcal||0);});
+    foods.forEach(f=>{cho+=(f.total?.cho||0);pro+=(f.total?.pro||0);fat+=(f.total?.fat||0);});
   });
-  return {cho:Math.round(cho),pro:Math.round(pro),fat:Math.round(fat),kcal:Math.round(kcal)};
+  cho=Math.round(cho); pro=Math.round(pro); fat=Math.round(fat);
+  // Kcal ricalcolate dai macros per coerenza
+  const kcal = Math.round(cho*4 + pro*4 + fat*9);
+  return {cho, pro, fat, kcal};
 }
 function getMacroStatus(current, target) {
   if(target <= 0) return {ok:true, over:false, under:false, diff:0};
@@ -4943,8 +4951,11 @@ function findFoodByRole(role, cats, dieta, allergie, seed) {
 
 // CUORE DEL GENERATORE: calcola i grammi esatti per centrare il target
 function calcExactGrams(food, targetKcal) {
-  if(!food || food.kcal <= 0) return 100;
-  const grams = Math.round((targetKcal / food.kcal) * 100);
+  if(!food) return 100;
+  // Kcal reale per 100g calcolata dai macros: CHO×4 + PRO×4 + FAT×9
+  const realKcalPer100 = (food.cho||0)*4 + (food.pro||0)*4 + (food.fat||0)*9;
+  if(realKcalPer100 <= 0) return 100;
+  const grams = Math.round((targetKcal / realKcalPer100) * 100);
   return Math.max(10, Math.min(500, grams));
 }
 
@@ -4952,13 +4963,14 @@ function calcExactGrams(food, targetKcal) {
 function adjustToTarget(foods, targetCho, targetPro, targetFat, targetKcal) {
   if(!foods.length) return foods;
   
-  // Calcola totale attuale
-  const calcTotal = (fs) => fs.reduce((acc, f) => ({
-    cho:  acc.cho  + (f.total?.cho  || 0),
-    pro:  acc.pro  + (f.total?.pro  || 0),
-    fat:  acc.fat  + (f.total?.fat  || 0),
-    kcal: acc.kcal + (f.total?.kcal || 0),
-  }), {cho:0, pro:0, fat:0, kcal:0});
+  // Calcola totale attuale — kcal sempre da CHO×4+PRO×4+FAT×9
+  const calcTotal = (fs) => fs.reduce((acc, f) => {
+    const cho  = f.total?.cho  || 0;
+    const pro  = f.total?.pro  || 0;
+    const fat  = f.total?.fat  || 0;
+    const kcal = cho*4 + pro*4 + fat*9;
+    return { cho: acc.cho+cho, pro: acc.pro+pro, fat: acc.fat+fat, kcal: acc.kcal+kcal };
+  }, {cho:0, pro:0, fat:0, kcal:0});
 
   // Iterazioni di aggiustamento
   for(let iter = 0; iter < 5; iter++) {
@@ -5055,7 +5067,9 @@ function pickMealRecipe(mk, targetKcal, dieta, allergie, seed) {
   if (!recipe || !recipe.kcal || recipe.kcal <= 0) return null;
 
   // Scale per colpire ESATTAMENTE il target kcal
-  var scale = targetKcal / recipe.kcal;
+  // Usa kcal reale dalla formula CHO×4+PRO×4+FAT×9
+  var recipeRealKcal = (recipe.cho||0)*4 + (recipe.pro||0)*4 + (recipe.fat||0)*9 || recipe.kcal || 300;
+  var scale = targetKcal / recipeRealKcal;
 
   var scaledKcal = targetKcal;
   var scaledCho  = Math.round(recipe.cho * scale * 10) / 10;
@@ -5128,7 +5142,8 @@ function generateMealPlan(profile, macros, dayIndex, isTraining, randomSeed) {
         // Aggiustamento chirurgico finale per zerare il delta kcal
         const f = recipeItems[0];
         if (f.kcal > 0) {
-          const scale = mTargetKcal / f.kcal;
+          const fRealKcal = (f.cho||0)*4+(f.pro||0)*4+(f.fat||0)*9 || f.kcal || 100;
+          const scale = mTargetKcal / fRealKcal;
           f.grams = Math.max(50, Math.min(700, Math.round(200 * scale)));
           f.total = {
             kcal: mTargetKcal,
@@ -5250,12 +5265,14 @@ function renderMacroBlock(label,current,target,color,perc) {
     +'</div></div>';
 }
 function renderMacroBarSmall(label,current,target,color,perc) {
-  const bc=perc<80?'#2e7d32':perc<105?color:'#c62828';
+  // Semaforo: verde=in target ±1%, giallo=sotto, rosso=sopra
+  const st = getMacroStatus(current, target);
+  const bc = st.ok ? '#2e7d32' : st.over ? '#c62828' : '#d4a000';
   return '<div style="background:rgba(0,0,0,0.04);border-radius:8px;padding:6px 8px;text-align:center;">'
     +'<div style="font-size:9px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.4px;">'+label+'</div>'
     +'<div style="font-size:13px;font-weight:700;color:var(--text-primary);letter-spacing:-0.3px;margin:2px 0;">'+current+'<span style="font-size:9px;color:var(--text-muted);">/'+target+'</span></div>'
     +'<div style="height:3px;background:var(--border);border-radius:99px;overflow:hidden;">'
-    +'<div style="height:100%;width:'+perc+'%;background:'+bc+';border-radius:99px;transition:width .3s;"></div>'
+    +'<div style="height:100%;width:'+Math.min(100,perc)+'%;background:'+bc+';border-radius:99px;transition:width .3s;"></div>'
     +'</div></div>';
 }
 function renderMacroRing(label,current,target,color,perc) { return renderMacroBlock(label,current,target,color,perc); }
@@ -5323,12 +5340,12 @@ function renderDashboard() {
     +'<div style="background:#fff;border-radius:14px;padding:12px 14px;border:1px solid var(--border);">'
     +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
     +'<div style="font-size:12px;font-weight:700;">Macronutrienti oggi</div>'
-    +'<div style="font-size:11px;font-weight:700;color:'+(percKcal>1.05?'var(--red-alert)':percKcal>1.0?'#e65100':'var(--text-secondary)')+';">'+consumed.kcal+' / '+kcalTarget+' kcal</div></div>'
+    +'<div style="font-size:11px;font-weight:700;color:'+(percKcal>1.01?'var(--red-alert)':percKcal>=0.99?'#2e7d32':'#d4a000')+';">'+consumed.kcal+' / '+kcalTarget+' kcal</div></div>'
     +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">'
-    +renderMacroBlock('CHO',consumed.cho,cho,'#e65100',choP)
-    +renderMacroBlock('PRO',consumed.pro,m.pro,'#1565c0',proP)
-    +renderMacroBlock('FAT',consumed.fat,m.fat,'#6a1b9a',fatP)
-    +renderMacroBlock('KCAL',consumed.kcal,kcalTarget,'#c62828',kcalP)
+    +renderMacroBlock('CHO',consumed.cho,cho,'#2e7d32',choP)
+    +renderMacroBlock('PRO',consumed.pro,m.pro,'#2e7d32',proP)
+    +renderMacroBlock('FAT',consumed.fat,m.fat,'#2e7d32',fatP)
+    +renderMacroBlock('KCAL',consumed.kcal,kcalTarget,'#2e7d32',kcalP)
     +'</div></div></div>'
     +'<div style="padding:0 16px 4px;">'
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
@@ -5679,9 +5696,9 @@ function renderWeekMacroBanner(dayIdx) {
     +'<div style="text-align:right;font-size:10px;color:var(--text-muted);line-height:1.8;">'
     +'<div>CHO '+consumed.cho+'/'+choT+'g</div><div>PRO '+consumed.pro+'/'+m.pro+'g</div><div>FAT '+consumed.fat+'/'+m.fat+'g</div></div></div>'
     +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">'
-    +renderMacroBarSmall('CHO',consumed.cho,choT,'#e65100',choP)
-    +renderMacroBarSmall('PRO',consumed.pro,m.pro,'#1565c0',proP)
-    +renderMacroBarSmall('FAT',consumed.fat,m.fat,'#6a1b9a',fatP)
+    +renderMacroBarSmall('CHO',consumed.cho,choT,'#2e7d32',choP)
+    +renderMacroBarSmall('PRO',consumed.pro,m.pro,'#2e7d32',proP)
+    +renderMacroBarSmall('FAT',consumed.fat,m.fat,'#2e7d32',fatP)
     +renderMacroBarSmall('KCAL',consumed.kcal,kcalT,'#c62828',kcalP)
     +'</div></div>';
 }
@@ -5975,15 +5992,12 @@ function generateMealPlanPrecise(profile, macros, dayIndex, isTraining, randomSe
       const recipeItems2 = pickMealRecipe(mk, tKcal, dieta, allergie, (randomSeed || 0) + mIdx2 * 100);
       if (recipeItems2 && recipeItems2.length) {
         const f2 = recipeItems2[0];
-        if (f2.kcal > 0) {
-          const scale2 = tKcal / f2.kcal;
-          f2.grams = Math.max(50, Math.min(700, Math.round(200 * scale2)));
-          f2.total = {
-            kcal: tKcal,
-            cho:  Math.round(f2.cho * (f2.grams / 100) * 10) / 10,
-            pro:  Math.round(f2.pro * (f2.grams / 100) * 10) / 10,
-            fat:  Math.round(f2.fat * (f2.grams / 100) * 10) / 10
-          };
+        // Kcal reale per 100g dalla formula CHO×4+PRO×4+FAT×9
+        const f2RealKcal = (f2.cho||0)*4 + (f2.pro||0)*4 + (f2.fat||0)*9;
+        if (f2RealKcal > 0) {
+          // Calcola grammi necessari per raggiungere tKcal
+          f2.grams = Math.max(50, Math.min(700, Math.round((tKcal / f2RealKcal) * 100)));
+          f2.total = calcFoodMacros(f2, f2.grams);
           f2._autoGen = true;
         }
         meals[mk] = recipeItems2;
@@ -6022,8 +6036,11 @@ function generateMealPlanPrecise(profile, macros, dayIndex, isTraining, randomSe
       }
 
       if(!grams || grams.some(g => g < 0)) {
-        // Fallback estremo: solo proporzionale su kcal
-        const totalFoodsKcal = (fP.kcal + fC.kcal + (fF ? fF.kcal : 0)) / 100;
+        // Fallback estremo: proporzionale su kcal reale (CHO×4+PRO×4+FAT×9)
+        const realKP = ((fP.cho||0)*4+(fP.pro||0)*4+(fP.fat||0)*9)/100;
+        const realKC = ((fC.cho||0)*4+(fC.pro||0)*4+(fC.fat||0)*9)/100;
+        const realKF = fF ? ((fF.cho||0)*4+(fF.pro||0)*4+(fF.fat||0)*9)/100 : 0;
+        const totalFoodsKcal = realKP + realKC + realKF;
         const gEach = totalFoodsKcal > 0 ? tKcal / totalFoodsKcal / 3 : 100;
         grams = [gEach, gEach, fF ? gEach : 0];
       }
@@ -6046,14 +6063,17 @@ function generateMealPlanPrecise(profile, macros, dayIndex, isTraining, randomSe
     if(!bestFoods || !bestFoods.length) { meals[mk] = []; return; }
 
     // ---- CORREZIONE FINALE: aggiusta grammi per arrivare al 100% esatto ----
-    // Scala iterativa su tutti gli alimenti per centrare le kcal
-    for(let pass = 0; pass < 10; pass++) {
-      const tot = bestFoods.reduce((a,f) => ({
-        kcal: a.kcal+(f.total?.kcal||0),
-        cho:  a.cho +(f.total?.cho||0),
-        pro:  a.pro +(f.total?.pro||0),
-        fat:  a.fat +(f.total?.fat||0),
-      }), {kcal:0,cho:0,pro:0,fat:0});
+    // Scala iterativa: kcal sempre da CHO×4+PRO×4+FAT×9
+    for(let pass = 0; pass < 15; pass++) {
+      const tot = bestFoods.reduce((a,f) => {
+        const cho = f.total?.cho||0, pro = f.total?.pro||0, fat = f.total?.fat||0;
+        return {
+          kcal: a.kcal + cho*4 + pro*4 + fat*9,
+          cho:  a.cho  + cho,
+          pro:  a.pro  + pro,
+          fat:  a.fat  + fat,
+        };
+      }, {kcal:0,cho:0,pro:0,fat:0});
 
       if(tot.kcal <= 0) break;
       const ratio = tKcal / tot.kcal;
@@ -7838,15 +7858,15 @@ function preparePDF() {
           '</div>' +
           '<div style="text-align:center;border-left:1px solid #d1d1d6;">' +
             '<div style="font-size:11px;font-weight:700;color:#8e8e93;">Carb</div>' +
-            '<div style="font-size:13px;font-weight:800;color:#e65100;">' + tot.cho + 'g</div>' +
+            '<div style="font-size:13px;font-weight:800;color:var(--text-primary);">' + tot.cho + 'g</div>' +
           '</div>' +
           '<div style="text-align:center;border-left:1px solid #d1d1d6;">' +
             '<div style="font-size:11px;font-weight:700;color:#8e8e93;">Prot</div>' +
-            '<div style="font-size:13px;font-weight:800;color:#1565c0;">' + tot.pro + 'g</div>' +
+            '<div style="font-size:13px;font-weight:800;color:var(--text-primary);">' + tot.pro + 'g</div>' +
           '</div>' +
           '<div style="text-align:center;border-left:1px solid #d1d1d6;">' +
             '<div style="font-size:11px;font-weight:700;color:#8e8e93;">Gras</div>' +
-            '<div style="font-size:13px;font-weight:800;color:#6a1b9a;">' + tot.fat + 'g</div>' +
+            '<div style="font-size:13px;font-weight:800;color:var(--text-primary);">' + tot.fat + 'g</div>' +
           '</div>' +
         '</div>' +
 
