@@ -2,13 +2,14 @@
   "name": "TATANKA Nutrition Pro",
   "short_name": "TATANKA",
   "description": "La tua app di nutrizione personale Tatanka",
-  "start_url": "/",
+  "start_url": "/tatanka/index.html",
+  "scope": "/tatanka/",
   "display": "standalone",
   "background_color": "#111111",
-  "theme_color": "#111111",
+  "theme_color": "#d32f2f",
   "orientation": "portrait",
   "icons": [
-    { "src": "icon_192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icon_512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/tatanka/icon_192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/tatanka/icon_512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }
