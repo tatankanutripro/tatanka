@@ -5926,12 +5926,46 @@ function renderDashboard() {
     +(function(){
       // OBIETTIVO SECTION — full width below misurazioni
       var wt = m.weeksToGoal || 4;
-      var pct = wt > 0 ? Math.min(100, Math.round(weeksElapsed / wt * 100)) : 0;
+      // ── Pre-calcolo peso target per rilevare se l'obiettivo è raggiunto ──
+      var _pesoP  = p.peso || 70;
+      var _bfP    = p.bf_attuale || 20;
+      var _leanM  = _pesoP * (1 - _bfP / 100);
+      var _bfObj  = p.bf_obiettivo || 15;
+      var _tPeso  = Math.round((_leanM / (1 - _bfObj / 100)) * 10) / 10;
+      var _obj2   = p.obiettivo || 'mantenimento';
+      var _todayP = (todayData && todayData.peso) ? todayData.peso : null;
+      var _minFis = Math.round(_leanM * 1.02 * 10) / 10;
+      var _pesoNow = (_todayP && _todayP > _minFis) ? _todayP : _pesoP;
+      // Obiettivo raggiunto se il peso ha superato il target (tolleranza 0.2 kg)
+      var weightReached = false;
+      if(_obj2 === 'dimagrimento' || _obj2 === 'peaking') {
+        weightReached = _pesoNow <= _tPeso + 0.2;
+      } else if(_obj2 === 'massa') {
+        weightReached = _pesoNow >= _tPeso - 0.2;
+      } else {
+        weightReached = weeksRemaining <= 0;
+      }
+      var goalReached = weightReached || weeksRemaining <= 0;
+      // Percentuale progresso basata sul peso raggiunto (non sul solo calendario)
+      var pct;
+      if(goalReached) {
+        pct = 100;
+      } else if(_obj2 === 'dimagrimento' || _obj2 === 'peaking') {
+        var _delta = _pesoP - _tPeso;
+        var _fatto = _pesoP - _pesoNow;
+        pct = _delta > 0 ? Math.min(100, Math.max(0, Math.round(_fatto / _delta * 100))) : 0;
+      } else if(_obj2 === 'massa') {
+        var _delta = _tPeso - _pesoP;
+        var _fatto = _pesoNow - _pesoP;
+        pct = _delta > 0 ? Math.min(100, Math.max(0, Math.round(_fatto / _delta * 100))) : 0;
+      } else {
+        pct = wt > 0 ? Math.min(100, Math.round(weeksElapsed / wt * 100)) : 0;
+      }
       // Prossimo controllo = meta delle sett. rimanenti (min 1, max 2)
-      var effInt = weeksRemaining <= 0 ? 1 : Math.max(1, Math.min(2, Math.floor(weeksRemaining / 2)));
+      var effInt = goalReached ? 1 : Math.max(1, Math.min(2, Math.floor(weeksRemaining / 2)));
       var nxt = effInt - (weeksElapsed % effInt || effInt);
       if(nxt <= 0) nxt = effInt;
-      var isCheckDue = weeksElapsed > 0 && (weeksElapsed % effInt === 0);
+      var isCheckDue = !goalReached && weeksElapsed > 0 && (weeksElapsed % effInt === 0);
       // Nascondi il bottone se il controllo è già stato fatto questa settimana
       if(isCheckDue && APP.controlloHistory && APP.controlloHistory.length > 0) {
         var startOfWeek = new Date(weekStart.getTime() + weeksElapsed * 7*24*3600*1000);
@@ -5945,22 +5979,24 @@ function renderDashboard() {
       var checkDate = new Date(weekStart.getTime() + (weeksElapsed + nxt) * 7*24*3600*1000);
       var goalDate  = new Date(weekStart.getTime() + wt * 7*24*3600*1000);
       var chkLbl = nxt === 1 ? '1 sett.' : nxt + ' sett.';
-      var goalLbl = weeksRemaining <= 0 ? 'Raggiunto!' : weeksRemaining === 1 ? '1 sett.' : weeksRemaining + ' sett.';
-      return '<div style="background:#fff;border-radius:12px;padding:12px 14px;border:1px solid var(--border);display:flex;flex-direction:column;gap:6px;">'
+      var goalLbl = goalReached ? '🎉 Raggiunto!' : weeksRemaining === 1 ? '1 sett.' : weeksRemaining + ' sett.';
+      var barColor = goalReached ? '#2e7d32' : 'var(--tatanka-red)';
+      return '<div style="background:'+(goalReached?'rgba(46,125,50,0.06)':'#fff')+';border-radius:12px;padding:12px 14px;border:1px solid '+(goalReached?'rgba(46,125,50,0.35)':'var(--border)')+';display:flex;flex-direction:column;gap:6px;">'
         +'<div style="display:flex;align-items:center;justify-content:space-between;">'
         +'<div style="font-size:9px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">🎯 Obiettivi</div>'
-        +'<div style="font-size:11px;font-weight:800;color:var(--tatanka-red);">'+pct+'%</div>'
+        +'<div style="font-size:11px;font-weight:800;color:'+barColor+';">'+pct+'%</div>'
         +'</div>'
         +'<div style="height:4px;background:var(--border);border-radius:99px;overflow:hidden;">'
-        +'<div style="height:100%;width:'+pct+'%;background:var(--tatanka-red);border-radius:99px;"></div>'
+        +'<div style="height:100%;width:'+pct+'%;background:'+barColor+';border-radius:99px;"></div>'
         +'</div>'
-        +'<div style="background:rgba(255,152,0,0.08);border-radius:8px;padding:6px 8px;border:1px solid rgba(255,152,0,0.3);">'
-        +'<div style="font-size:7px;font-weight:700;color:#e65100;text-transform:uppercase;letter-spacing:0.3px;">⏰ Controllo</div>'
-        +'<div style="font-size:16px;font-weight:800;color:var(--text-primary);line-height:1.1;">'+chkLbl+'</div>'
-        +(isCheckDue
-          ? '<div style="font-size:9px;color:var(--tatanka-red);font-weight:700;">⚡ QUESTA SETTIMANA</div>'
-          : (fmtDate(checkDate)?'<div style="font-size:9px;color:var(--text-muted);">'+fmtDate(checkDate)+'</div>':''))
-        +'</div>'
+        +(goalReached ? '' :
+          '<div style="background:rgba(255,152,0,0.08);border-radius:8px;padding:6px 8px;border:1px solid rgba(255,152,0,0.3);">'
+          +'<div style="font-size:7px;font-weight:700;color:#e65100;text-transform:uppercase;letter-spacing:0.3px;">⏰ Controllo</div>'
+          +'<div style="font-size:16px;font-weight:800;color:var(--text-primary);line-height:1.1;">'+chkLbl+'</div>'
+          +(isCheckDue
+            ? '<div style="font-size:9px;color:var(--tatanka-red);font-weight:700;">⚡ QUESTA SETTIMANA</div>'
+            : (fmtDate(checkDate)?'<div style="font-size:9px;color:var(--text-muted);">'+fmtDate(checkDate)+'</div>':''))
+          +'</div>')
         +(function(){
           var bfObj       = p.bf_obiettivo || 15;
           // ── Dati di riferimento dal profilo ──────────────────────────
@@ -5997,7 +6033,7 @@ function renderDashboard() {
           var deltaBF    = Math.round((bfAtt - bfObj) * 10) / 10;
           var wLeft      = weeksRemaining > 0 ? weeksRemaining : 1;
           var paceKg     = Math.round(Math.abs(deltaPeso) / wLeft * 100) / 100;
-          var reached    = weeksRemaining <= 0;
+          var reached    = goalReached; // usa goalReached (peso + calendario)
           /* Colori per fase */
           var phaseIcon, phaseLabel, phaseColor, phaseBg, phaseBorder;
           if(obj2==='dimagrimento'){    phaseIcon='🔥'; phaseLabel='Dimagrimento';  phaseColor='#c62828'; phaseBg='rgba(198,40,40,0.05)'; phaseBorder='rgba(198,40,40,0.25)'; }
