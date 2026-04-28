@@ -5962,14 +5962,36 @@ function renderDashboard() {
           : (fmtDate(checkDate)?'<div style="font-size:9px;color:var(--text-muted);">'+fmtDate(checkDate)+'</div>':''))
         +'</div>'
         +(function(){
-          var bfObj    = p.bf_obiettivo || 15;
-          var bfAtt    = p.bf_attuale  || 20;
-          // Usa il peso misurato oggi se disponibile, altrimenti il peso del profilo
-          var pesoAtt  = (todayData && todayData.peso) ? todayData.peso : (p.peso || 70);
-          var pesoSrcLabel = (todayData && todayData.peso) ? '<span style="font-size:8px;background:rgba(46,125,50,0.15);color:#2e7d32;border-radius:4px;padding:1px 5px;font-weight:700;margin-left:4px;">📍 misurato oggi</span>' : '<span style="font-size:8px;background:rgba(180,180,180,0.18);color:var(--text-muted);border-radius:4px;padding:1px 5px;font-weight:600;margin-left:4px;">👤 profilo</span>';
+          var bfObj       = p.bf_obiettivo || 15;
+          // ── Dati di riferimento dal profilo ──────────────────────────
+          var pesoProfile   = p.peso       || 70;
+          var bfProfile     = p.bf_attuale || 20;
+          // La massa magra è calcolata UNA VOLTA dal profilo e rimane costante
+          var leanMass      = pesoProfile * (1 - bfProfile / 100);
+          // ── Peso e BF coerenti per gli OBIETTIVI ─────────────────────
+          var pesoAtt, bfAtt, pesoSrcLabel;
+          var todayPeso = (todayData && todayData.peso) ? todayData.peso : null;
+          // Soglia fisiologica minima: il peso misurato deve essere
+          // almeno leanMass * 1.02 (almeno 2% di grasso corporeo minimo)
+          var minFisiologico = Math.round(leanMass * 1.02 * 10) / 10;
+          if (todayPeso && todayPeso > minFisiologico) {
+            // Peso plausibile → ricalcola BF mantenendo la massa magra costante
+            pesoAtt = todayPeso;
+            bfAtt   = Math.max(3, Math.round((1 - leanMass / todayPeso) * 1000) / 10);
+            pesoSrcLabel = '<span style="font-size:8px;background:rgba(46,125,50,0.15);color:#2e7d32;border-radius:4px;padding:1px 5px;font-weight:700;margin-left:4px;">📍 misurato oggi</span>';
+          } else if (todayPeso) {
+            // Peso inserito ma fisiologicamente impossibile (< massa magra)
+            // → usa i dati del profilo e mostra un avviso
+            pesoAtt = pesoProfile;
+            bfAtt   = bfProfile;
+            pesoSrcLabel = '<span style="font-size:8px;background:rgba(230,81,0,0.18);color:#e65100;border-radius:4px;padding:1px 5px;font-weight:700;margin-left:4px;">⚠️ usa Controllo</span>';
+          } else {
+            // Nessuna misurazione oggi → usa profilo
+            pesoAtt = pesoProfile;
+            bfAtt   = bfProfile;
+            pesoSrcLabel = '<span style="font-size:8px;background:rgba(180,180,180,0.18);color:var(--text-muted);border-radius:4px;padding:1px 5px;font-weight:600;margin-left:4px;">👤 profilo</span>';
+          }
           var obj2     = p.obiettivo   || 'mantenimento';
-          /* Calcolo peso target basato su massa magra */
-          var leanMass = pesoAtt * (1 - bfAtt/100);
           var tPeso    = Math.round((leanMass / (1 - bfObj/100)) * 10) / 10;
           var deltaPeso  = Math.round((pesoAtt - tPeso) * 10) / 10;
           var deltaBF    = Math.round((bfAtt - bfObj) * 10) / 10;
