@@ -5865,20 +5865,25 @@ function renderDashboard() {
     +'<div style="text-align:right;"><div style="font-size:22px;font-weight:800;color:'+semSC+';">'+Math.round(percKcal*100)+'%</div>'
     +'<div style="font-size:10px;color:var(--text-muted);">'+consumed.kcal+'/'+kcalTarget+' kcal</div></div></div></div>'
     + renderFastingDashCard()
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 16px 10px;align-items:start;">'
-    +'<div onclick="openDatiGiornalieri()" style="background:'+(todayData.peso?'#fff':'var(--tatanka-black)')+';border-radius:12px;padding:10px 12px;border:2px solid '+(todayData.peso?'var(--green)':'var(--tatanka-red)')+';cursor:pointer;display:flex;flex-direction:column;gap:4px;">'
-    +'<div style="font-size:8px;font-weight:700;color:'+(todayData.peso?'var(--text-secondary)':'rgba(255,255,255,0.6)')+';text-transform:uppercase;letter-spacing:0.5px;">📍 Misurazioni</div>'
+    +'<div style="padding:0 16px 10px;">'
+    +'<div onclick="openDatiGiornalieri()" style="background:'+(todayData.peso?'#fff':'var(--tatanka-black)')+';border-radius:12px;padding:12px 14px;border:2px solid '+(todayData.peso?'var(--green)':'var(--tatanka-red)')+';cursor:pointer;display:flex;flex-direction:row;align-items:center;justify-content:space-between;margin-bottom:8px;">'
+    +'<div style="display:flex;flex-direction:column;gap:2px;">'
+    +'<div style="font-size:9px;font-weight:700;color:'+(todayData.peso?'var(--text-secondary)':'rgba(255,255,255,0.6)')+';text-transform:uppercase;letter-spacing:0.5px;">📍 Misurazioni di oggi</div>'
     +(todayData.peso?
-      '<div style="font-size:24px;font-weight:800;color:var(--text-primary);line-height:1;letter-spacing:-0.5px;">'+todayData.peso+'<span style="font-size:11px;font-weight:500;color:var(--text-secondary);"> kg</span></div>'
-      +(todayData.temp?'<div style="font-size:10px;color:var(--text-secondary);">🌡️ '+todayData.temp+'°C</div>':'')
-      +'<div style="margin-top:4px;"><div style="background:var(--tatanka-red);border-radius:6px;padding:3px 8px;display:inline-block;font-size:9px;font-weight:700;color:#fff;">✏️ MODIFICA</div></div>'
+      '<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">'
+      +'<span style="font-size:26px;font-weight:800;color:var(--text-primary);letter-spacing:-0.5px;line-height:1.1;">'+todayData.peso+' <span style="font-size:13px;font-weight:500;color:var(--text-secondary);">kg</span></span>'
+      +(todayData.temp?'<span style="font-size:11px;color:var(--text-secondary);">· 🌡️ '+todayData.temp+'°C</span>':'')
+      +'</div>'
       :
-      '<div style="font-size:12px;font-weight:700;color:#fff;line-height:1.2;">Registra ora</div>'
-      +'<div style="font-size:9px;color:rgba(255,255,255,0.6);">Peso · Temp · Misure</div>'
-      +'<div style="margin-top:4px;background:var(--tatanka-red);border-radius:6px;padding:3px 8px;display:inline-block;font-size:9px;font-weight:700;color:#fff;">+ AGGIUNGI</div>')
+      '<div style="font-size:13px;font-weight:700;color:#fff;line-height:1.2;">Registra peso · Temp · Misure</div>')
+    +'</div>'
+    +(todayData.peso?
+      '<div style="background:var(--tatanka-red);border-radius:8px;padding:5px 12px;font-size:10px;font-weight:700;color:#fff;white-space:nowrap;">✏️ MODIFICA</div>'
+      :
+      '<div style="background:var(--tatanka-red);border-radius:8px;padding:5px 12px;font-size:10px;font-weight:700;color:#fff;white-space:nowrap;">+ AGGIUNGI</div>')
     +'</div>'
     +(function(){
-      // IMPORTANTE: dichiarare tutto prima di usarlo (evita NaN da TDZ)
+      // OBIETTIVO SECTION — full width below misurazioni
       var wt = m.weeksToGoal || 4;
       var pct = wt > 0 ? Math.min(100, Math.round(weeksElapsed / wt * 100)) : 0;
       // Prossimo controllo = meta delle sett. rimanenti (min 1, max 2)
@@ -5900,7 +5905,7 @@ function renderDashboard() {
       var goalDate  = new Date(weekStart.getTime() + wt * 7*24*3600*1000);
       var chkLbl = nxt === 1 ? '1 sett.' : nxt + ' sett.';
       var goalLbl = weeksRemaining <= 0 ? 'Raggiunto!' : weeksRemaining === 1 ? '1 sett.' : weeksRemaining + ' sett.';
-      return '<div style="background:#fff;border-radius:12px;padding:10px 12px;border:1px solid var(--border);display:flex;flex-direction:column;gap:6px;">'
+      return '<div style="background:#fff;border-radius:12px;padding:12px 14px;border:1px solid var(--border);display:flex;flex-direction:column;gap:6px;">'
         +'<div style="display:flex;align-items:center;justify-content:space-between;">'
         +'<div style="font-size:9px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">🎯 Obiettivi</div>'
         +'<div style="font-size:11px;font-weight:800;color:var(--tatanka-red);">'+pct+'%</div>'
@@ -5941,21 +5946,21 @@ function renderDashboard() {
             var gramDay = Math.round(paceKg*1000/7);
             statusHtml =
               '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
-              +'<span style="font-size:9px;color:var(--text-secondary);">Adesso</span>'
+              +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">Adesso</span>'
               +'<span style="font-size:11px;font-weight:800;color:var(--text-primary);">'+pesoAtt+' kg · '+bfAtt+'% BF</span>'
               +'</div>'
               +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
-              +'<span style="font-size:9px;color:var(--text-secondary);">Devi arrivare a</span>'
+              +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">Devi arrivare a</span>'
               +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">'+tPeso+' kg · '+bfObj+'% BF</span>'
               +'</div>'
-              +'<div style="background:'+phaseBg+';border:1px solid '+phaseBorder+';border-radius:7px;padding:5px 7px;margin-bottom:4px;">'
-              +'<div style="display:flex;justify-content:space-between;">'
-              +'<span style="font-size:8px;color:var(--text-muted);">Da perdere</span>'
-              +'<span style="font-size:10px;font-weight:800;color:'+phaseColor+';">−'+Math.abs(deltaPeso)+' kg (−'+Math.abs(deltaBF)+'% BF)</span>'
+              +'<div style="background:'+phaseBg+';border:1px solid '+phaseBorder+';border-radius:7px;padding:7px 10px;margin-bottom:4px;">'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Da perdere</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">−'+Math.abs(deltaPeso)+' kg (−'+Math.abs(deltaBF)+'% BF)</span>'
               +'</div>'
-              +'<div style="display:flex;justify-content:space-between;margin-top:2px;">'
-              +'<span style="font-size:8px;color:var(--text-muted);">Ritmo</span>'
-              +'<span style="font-size:10px;font-weight:800;color:'+phaseColor+';">~'+paceKg+' kg/sett · ~'+gramDay+'g/die</span>'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Ritmo</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">~'+paceKg+' kg/sett · ~'+gramDay+'g/die</span>'
               +'</div>'
               +'</div>';
           } else if(obj2==='massa'){
@@ -5963,52 +5968,52 @@ function renderDashboard() {
             var paceM = Math.round(Math.min(0.5, Math.abs(kgDa)/wLeft)*100)/100;
             statusHtml =
               '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
-              +'<span style="font-size:9px;color:var(--text-secondary);">Adesso</span>'
+              +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">Adesso</span>'
               +'<span style="font-size:11px;font-weight:800;color:var(--text-primary);">'+pesoAtt+' kg · '+bfAtt+'% BF</span>'
               +'</div>'
               +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
-              +'<span style="font-size:9px;color:var(--text-secondary);">Devi arrivare a</span>'
+              +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">Devi arrivare a</span>'
               +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">'+tPeso+' kg · '+bfObj+'% BF</span>'
               +'</div>'
-              +'<div style="background:'+phaseBg+';border:1px solid '+phaseBorder+';border-radius:7px;padding:5px 7px;margin-bottom:4px;">'
-              +'<div style="display:flex;justify-content:space-between;">'
-              +'<span style="font-size:8px;color:var(--text-muted);">Da guadagnare</span>'
-              +'<span style="font-size:10px;font-weight:800;color:'+phaseColor+';">+'+Math.abs(kgDa)+' kg massa</span>'
+              +'<div style="background:'+phaseBg+';border:1px solid '+phaseBorder+';border-radius:7px;padding:7px 10px;margin-bottom:4px;">'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Da guadagnare</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">+'+Math.abs(kgDa)+' kg massa</span>'
               +'</div>'
-              +'<div style="display:flex;justify-content:space-between;margin-top:2px;">'
-              +'<span style="font-size:8px;color:var(--text-muted);">Surplus ideale</span>'
-              +'<span style="font-size:10px;font-weight:800;color:'+phaseColor+';">~'+paceM+' kg/sett</span>'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Surplus ideale</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">~'+paceM+' kg/sett</span>'
               +'</div>'
               +'</div>';
           } else if(obj2==='peaking'){
             var gramDayP = Math.round(paceKg*1000/7);
             statusHtml =
               '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
-              +'<span style="font-size:9px;color:var(--text-secondary);">Adesso</span>'
+              +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">Adesso</span>'
               +'<span style="font-size:11px;font-weight:800;color:var(--text-primary);">'+pesoAtt+' kg · '+bfAtt+'%</span>'
               +'</div>'
               +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
-              +'<span style="font-size:9px;color:var(--text-secondary);">Target gara</span>'
+              +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">Target gara</span>'
               +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">'+tPeso+' kg · '+bfObj+'% BF</span>'
               +'</div>'
-              +'<div style="background:'+phaseBg+';border:1px solid '+phaseBorder+';border-radius:7px;padding:5px 7px;margin-bottom:4px;">'
-              +'<div style="display:flex;justify-content:space-between;">'
-              +'<span style="font-size:8px;color:var(--text-muted);">Da eliminare</span>'
-              +'<span style="font-size:10px;font-weight:800;color:'+phaseColor+';">−'+Math.abs(deltaPeso)+' kg grasso</span>'
+              +'<div style="background:'+phaseBg+';border:1px solid '+phaseBorder+';border-radius:7px;padding:7px 10px;margin-bottom:4px;">'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Da eliminare</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">−'+Math.abs(deltaPeso)+' kg grasso</span>'
               +'</div>'
-              +'<div style="display:flex;justify-content:space-between;margin-top:2px;">'
-              +'<span style="font-size:8px;color:var(--text-muted);">Deficit</span>'
-              +'<span style="font-size:10px;font-weight:800;color:'+phaseColor+';">~'+paceKg+' kg/sett · ~'+gramDayP+'g/die</span>'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Deficit</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">~'+paceKg+' kg/sett · ~'+gramDayP+'g/die</span>'
               +'</div>'
               +'</div>';
           } else if(obj2==='recomposizione'){
             statusHtml =
               '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
-              +'<span style="font-size:9px;color:var(--text-secondary);">Peso (stabile)</span>'
+              +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">Peso (stabile)</span>'
               +'<span style="font-size:11px;font-weight:800;color:var(--text-primary);">'+pesoAtt+' kg</span>'
               +'</div>'
               +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
-              +'<span style="font-size:9px;color:var(--text-secondary);">BF target</span>'
+              +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">BF target</span>'
               +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">'+bfAtt+'% → '+bfObj+'%</span>'
               +'</div>'
               +'<div style="background:'+phaseBg+';border:1px solid '+phaseBorder+';border-radius:7px;padding:5px 7px;margin-bottom:4px;">'
@@ -6018,7 +6023,7 @@ function renderDashboard() {
           } else {
             statusHtml =
               '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
-              +'<span style="font-size:9px;color:var(--text-secondary);">Peso target</span>'
+              +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">Peso target</span>'
               +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">'+pesoAtt+' kg</span>'
               +'</div>'
               +'<div style="background:'+phaseBg+';border:1px solid '+phaseBorder+';border-radius:7px;padding:5px 7px;margin-bottom:4px;">'
@@ -6038,7 +6043,7 @@ function renderDashboard() {
         +(isCheckDue?'<button style="width:100%;background:var(--tatanka-red);border:none;border-radius:8px;padding:5px;color:#fff;font-size:9px;font-weight:700;cursor:pointer;font-family:var(--font-body);" onclick="openModal(\'modal-controllo\');renderControllo()">⚡ Controllo ora!</button>':'')
         +'</div>';
     })()
-    +'</div>'  // chiude display:grid 1fr 1fr
+    +'</div>'  // chiude padding 0 16px 10px
     +'<div style="padding:0 16px 10px;">'
     +'<div style="background:#fff;border-radius:14px;padding:12px 14px;border:1px solid var(--border);">'
     +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
