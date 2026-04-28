@@ -3,7 +3,41 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>TATANKA Nutrition Pro</title>
+
+  <!-- ═══ PWA MANIFEST ═══ -->
+  <link rel="manifest" href="/tatanka/manifest.json">
+
+  <!-- ═══ PWA META TAG ═══ -->
+  <meta name="application-name" content="TATANKA Nutrition Pro">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Tatanka">
+  <meta name="theme-color" content="#111111">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="msapplication-TileColor" content="#111111">
+  <meta name="msapplication-TileImage" content="/tatanka/icons/icon-144.png">
+  <meta name="description" content="Il tuo coach nutrizionale personale. Piano alimentare, macros, digiuno intermittente e monitoraggio composizione corporea.">
+
+  <!-- ═══ APPLE TOUCH ICONS ═══ -->
+  <link rel="apple-touch-icon" sizes="152x152" href="/tatanka/icons/icon-152.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="/tatanka/icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="/tatanka/icons/icon-512.png">
+
+  <!-- ═══ FAVICON ═══ -->
+  <link rel="icon" type="image/png" sizes="192x192" href="/tatanka/icons/icon-192.png">
+  <link rel="shortcut icon" href="/tatanka/icons/icon-192.png">
+
+  <!-- ═══ SERVICE WORKER REGISTRATION ═══ -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/tatanka/sw.js')
+          .then(function(reg) { console.log('[SW] Registrato:', reg.scope); })
+          .catch(function(err) { console.log('[SW] Errore:', err); });
+      });
+    }
+  </script>
+<title>⚠️ TEST STRIPE — TATANKA Nutrition Pro</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -569,7 +603,7 @@ body {
       <button class="legal-footer-btn" onclick="openLegal('terms')">Termini di Servizio</button>
       <button class="legal-footer-btn" onclick="openLegal('disclaimer')">Disclaimer Medico</button>
     </div>
-    <div style="margin-top:12px;color:rgba(255,255,255,0.2);font-size:10px;">14 giorni gratuiti · poi 3,69€/mese · v1.0</div>
+    <div style="margin-top:12px;color:rgba(255,255,255,0.2);font-size:10px;">🧪 FILE TEST STRIPE · Trial 1gg · Sub 2gg · v1.0</div>
     <div style="margin-top:20px;color:rgba(255,255,255,0.25);font-size:11px;">Versione 1.0 · Tutti i dati sono privati e locali</div>
   </div>
 
@@ -3764,10 +3798,11 @@ function renderSupplementAdvice() {
 
 // ---- NAVIGATION ----
 function goToOnboarding() {
-  // ── PRIMO CLICK: avvia il trial di 14 giorni da adesso ────
-  // Il trial parte esattamente al primo accesso dell'utente.
+  // ── PRIMO CLICK: avvia il trial di 14 giorni ──────────────
+  // TEST STRIPE: imposta trial_start nel passato (solo se non esiste già)
+  // NON cancellare tatanka_pro altrimenti si blocca ad ogni refresh!
   if (!localStorage.getItem('tatanka_trial_start')) {
-    localStorage.setItem('tatanka_trial_start', String(Date.now()));
+    localStorage.setItem('tatanka_trial_start', String(Date.now() - 7200000));
   }
   if(APP.profile && APP.profile.macros) { showMainDashboard(); return; }
   currentStep = 1;
@@ -5913,135 +5948,124 @@ function renderDashboard() {
           : (fmtDate(checkDate)?'<div style="font-size:9px;color:var(--text-muted);">'+fmtDate(checkDate)+'</div>':''))
         +'</div>'
         +(function(){
-          var bfObj  = p.bf_obiettivo || 15;
-          var bfAtt  = p.bf_attuale || 20;
-          var pesoAtt= p.peso || 70;
-          var bfKg   = pesoAtt * (bfAtt - bfObj) / 100;
-          var mmAtt  = Math.round(pesoAtt * (1 - bfAtt/100) * 10) / 10; // massa magra attuale
-          var obj2   = p.obiettivo || 'mantenimento';
-          var sett   = m.weeksToGoal || 8;
-
-          // --- Calcolo target concreti per obiettivo ---
-          var tPeso, tBF, tMM, deltaPeso, kgPerSett;
-          var rows = [];
-          var emoji = '🎯';
-          var coloreObj = 'var(--tatanka-red)';
-          var bgObj = 'rgba(198,40,40,0.05)';
-          var borderObj = 'rgba(198,40,40,0.2)';
-
-          if(obj2 === 'dimagrimento') {
-            emoji = '🔥';
-            coloreObj = '#e65100'; bgObj = 'rgba(230,81,0,0.06)'; borderObj = 'rgba(230,81,0,0.25)';
-            tPeso = Math.round((pesoAtt - bfKg) * 10) / 10;
-            tBF = bfObj;
-            tMM = Math.round(tPeso * (1 - tBF/100) * 10) / 10;
-            deltaPeso = Math.round((pesoAtt - tPeso) * 10) / 10;
-            kgPerSett = sett > 0 ? Math.round(deltaPeso / sett * 100) / 100 : 0;
-            rows = [
-              ['⚖️ Peso attuale', pesoAtt + ' kg'],
-              ['🏁 Peso obiettivo', '~' + tPeso + ' kg'],
-              ['📉 Da perdere', deltaPeso + ' kg (' + kgPerSett + ' kg/sett)'],
-              ['💪 Massa magra target', '~' + tMM + ' kg'],
-              ['📊 BF attuale → target', bfAtt + '% → ' + tBF + '%'],
-            ];
-          } else if(obj2 === 'massa') {
-            emoji = '💪';
-            coloreObj = '#1565c0'; bgObj = 'rgba(21,101,192,0.06)'; borderObj = 'rgba(21,101,192,0.25)';
-            // In massa: il peso sale, il BF dovrebbe restare sotto controllo
-            var kgMassaSettimana = p.somatotipo === 'ectomorfo' ? 0.40 : p.somatotipo === 'endomorfo' ? 0.20 : 0.30;
-            var kgMassaTotale = Math.round(kgMassaSettimana * sett * 10) / 10;
-            tPeso = Math.round((pesoAtt + kgMassaTotale) * 10) / 10;
-            tBF = Math.min(bfAtt + 2, bfObj + 2); // piccolo aumento BF accettato
-            tMM = Math.round(tPeso * (1 - tBF/100) * 10) / 10;
-            var deltaMMacc = Math.round((tMM - mmAtt) * 10) / 10;
-            kgPerSett = kgMassaSettimana;
-            rows = [
-              ['⚖️ Peso attuale', pesoAtt + ' kg'],
-              ['🏁 Peso obiettivo', '~' + tPeso + ' kg'],
-              ['📈 Da guadagnare', '+' + kgMassaTotale + ' kg (' + kgPerSett + ' kg/sett)'],
-              ['💪 Massa magra attuale', mmAtt + ' kg'],
-              ['🏆 Massa magra target', '~' + deltaMMacc + ' kg in più'],
-              ['📊 BF sotto controllo', '≤' + tBF + '%'],
-            ];
-          } else if(obj2 === 'peaking') {
-            emoji = '🏆';
-            coloreObj = '#c9a227'; bgObj = 'rgba(201,162,39,0.07)'; borderObj = 'rgba(201,162,39,0.3)';
-            tPeso = Math.round((pesoAtt - bfKg) * 10) / 10;
-            tBF = bfObj; // M: 6%, F: 12%
-            tMM = Math.round(tPeso * (1 - tBF/100) * 10) / 10;
-            deltaPeso = Math.round((pesoAtt - tPeso) * 10) / 10;
-            kgPerSett = sett > 0 ? Math.round(deltaPeso / sett * 100) / 100 : 0;
-            rows = [
-              ['⚖️ Peso attuale', pesoAtt + ' kg'],
-              ['🏁 Peso gara/contest', '~' + tPeso + ' kg'],
-              ['📉 Grasso da eliminare', deltaPeso + ' kg (' + kgPerSett + ' kg/sett)'],
-              ['💪 Massa magra preservata', '~' + tMM + ' kg'],
-              ['📊 BF attuale → target', bfAtt + '% → ' + tBF + '% 🔥'],
-            ];
-          } else if(obj2 === 'recomposizione') {
-            emoji = '⚖️';
-            coloreObj = '#2e7d32'; bgObj = 'rgba(46,125,50,0.06)'; borderObj = 'rgba(46,125,50,0.25)';
-            // Stesso peso, meno BF, più MM
-            tPeso = pesoAtt;
-            tBF = Math.max(bfAtt - 5, p.sesso === 'M' ? 12 : 20);
-            tMM = Math.round(tPeso * (1 - tBF/100) * 10) / 10;
-            var guadagnoMM = Math.round((tMM - mmAtt) * 10) / 10;
-            rows = [
-              ['⚖️ Peso (invariato)', pesoAtt + ' kg'],
-              ['📊 BF attuale → target', bfAtt + '% → ' + tBF + '%'],
-              ['💪 Massa magra attuale', mmAtt + ' kg'],
-              ['🏆 Massa magra target', '~' + tMM + ' kg (+' + guadagnoMM + ' kg)'],
-              ['⏱️ Durata', sett + ' settimane'],
-            ];
-          } else if(obj2 === 'reset') {
-            emoji = '🔄';
-            coloreObj = '#6a1b9a'; bgObj = 'rgba(106,27,154,0.06)'; borderObj = 'rgba(106,27,154,0.25)';
-            rows = [
-              ['⚖️ Peso attuale', pesoAtt + ' kg'],
-              ['🎯 Obiettivo', 'Ripristino metabolico'],
-              ['📊 BF attuale', bfAtt + '%'],
-              ['⏱️ Durata reset', sett + ' settimane'],
-              ['🔥 TDEE stimato', m.tdee + ' kcal/die'],
-            ];
+          var bfObj    = p.bf_obiettivo || 15;
+          var bfAtt    = p.bf_attuale  || 20;
+          var pesoAtt  = p.peso        || 70;
+          var obj2     = p.obiettivo   || 'mantenimento';
+          /* Calcolo peso target basato su massa magra */
+          var leanMass = pesoAtt * (1 - bfAtt/100);
+          var tPeso    = Math.round((leanMass / (1 - bfObj/100)) * 10) / 10;
+          var deltaPeso  = Math.round((pesoAtt - tPeso) * 10) / 10;
+          var deltaBF    = Math.round((bfAtt - bfObj) * 10) / 10;
+          var wLeft      = weeksRemaining > 0 ? weeksRemaining : 1;
+          var paceKg     = Math.round(Math.abs(deltaPeso) / wLeft * 100) / 100;
+          var reached    = weeksRemaining <= 0;
+          /* Colori per fase */
+          var phaseIcon, phaseLabel, phaseColor, phaseBg, phaseBorder;
+          if(obj2==='dimagrimento'){    phaseIcon='🔥'; phaseLabel='Dimagrimento';  phaseColor='#c62828'; phaseBg='rgba(198,40,40,0.05)'; phaseBorder='rgba(198,40,40,0.25)'; }
+          else if(obj2==='massa'){     phaseIcon='💪'; phaseLabel='Aumento Massa'; phaseColor='#1565c0'; phaseBg='rgba(21,101,192,0.05)'; phaseBorder='rgba(21,101,192,0.25)'; }
+          else if(obj2==='peaking'){   phaseIcon='🏆'; phaseLabel='Peaking/Gara';  phaseColor='#6a1b9a'; phaseBg='rgba(106,27,154,0.05)'; phaseBorder='rgba(106,27,154,0.25)'; }
+          else if(obj2==='recomposizione'){ phaseIcon='⚖️'; phaseLabel='Ricomposizione'; phaseColor='#2e7d32'; phaseBg='rgba(46,125,50,0.05)'; phaseBorder='rgba(46,125,50,0.25)'; }
+          else{                        phaseIcon='🛡️'; phaseLabel='Mantenimento'; phaseColor='#e65100'; phaseBg='rgba(230,81,0,0.05)'; phaseBorder='rgba(230,81,0,0.25)'; }
+          /* Contenuto specifico per fase */
+          var statusHtml = '';
+          if(obj2==='dimagrimento'){
+            var gramDay = Math.round(paceKg*1000/7);
+            statusHtml =
+              '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
+              +'<span style="font-size:9px;color:var(--text-secondary);">Adesso</span>'
+              +'<span style="font-size:11px;font-weight:800;color:var(--text-primary);">'+pesoAtt+' kg · '+bfAtt+'% BF</span>'
+              +'</div>'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+              +'<span style="font-size:9px;color:var(--text-secondary);">Devi arrivare a</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">'+tPeso+' kg · '+bfObj+'% BF</span>'
+              +'</div>'
+              +'<div style="background:'+phaseBg+';border:1px solid '+phaseBorder+';border-radius:7px;padding:5px 7px;margin-bottom:4px;">'
+              +'<div style="display:flex;justify-content:space-between;">'
+              +'<span style="font-size:8px;color:var(--text-muted);">Da perdere</span>'
+              +'<span style="font-size:10px;font-weight:800;color:'+phaseColor+';">−'+Math.abs(deltaPeso)+' kg (−'+Math.abs(deltaBF)+'% BF)</span>'
+              +'</div>'
+              +'<div style="display:flex;justify-content:space-between;margin-top:2px;">'
+              +'<span style="font-size:8px;color:var(--text-muted);">Ritmo</span>'
+              +'<span style="font-size:10px;font-weight:800;color:'+phaseColor+';">~'+paceKg+' kg/sett · ~'+gramDay+'g/die</span>'
+              +'</div>'
+              +'</div>';
+          } else if(obj2==='massa'){
+            var kgDa = Math.round((tPeso - pesoAtt)*10)/10;
+            var paceM = Math.round(Math.min(0.5, Math.abs(kgDa)/wLeft)*100)/100;
+            statusHtml =
+              '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
+              +'<span style="font-size:9px;color:var(--text-secondary);">Adesso</span>'
+              +'<span style="font-size:11px;font-weight:800;color:var(--text-primary);">'+pesoAtt+' kg · '+bfAtt+'% BF</span>'
+              +'</div>'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+              +'<span style="font-size:9px;color:var(--text-secondary);">Devi arrivare a</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">'+tPeso+' kg · '+bfObj+'% BF</span>'
+              +'</div>'
+              +'<div style="background:'+phaseBg+';border:1px solid '+phaseBorder+';border-radius:7px;padding:5px 7px;margin-bottom:4px;">'
+              +'<div style="display:flex;justify-content:space-between;">'
+              +'<span style="font-size:8px;color:var(--text-muted);">Da guadagnare</span>'
+              +'<span style="font-size:10px;font-weight:800;color:'+phaseColor+';">+'+Math.abs(kgDa)+' kg massa</span>'
+              +'</div>'
+              +'<div style="display:flex;justify-content:space-between;margin-top:2px;">'
+              +'<span style="font-size:8px;color:var(--text-muted);">Surplus ideale</span>'
+              +'<span style="font-size:10px;font-weight:800;color:'+phaseColor+';">~'+paceM+' kg/sett</span>'
+              +'</div>'
+              +'</div>';
+          } else if(obj2==='peaking'){
+            var gramDayP = Math.round(paceKg*1000/7);
+            statusHtml =
+              '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
+              +'<span style="font-size:9px;color:var(--text-secondary);">Adesso</span>'
+              +'<span style="font-size:11px;font-weight:800;color:var(--text-primary);">'+pesoAtt+' kg · '+bfAtt+'%</span>'
+              +'</div>'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+              +'<span style="font-size:9px;color:var(--text-secondary);">Target gara</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">'+tPeso+' kg · '+bfObj+'% BF</span>'
+              +'</div>'
+              +'<div style="background:'+phaseBg+';border:1px solid '+phaseBorder+';border-radius:7px;padding:5px 7px;margin-bottom:4px;">'
+              +'<div style="display:flex;justify-content:space-between;">'
+              +'<span style="font-size:8px;color:var(--text-muted);">Da eliminare</span>'
+              +'<span style="font-size:10px;font-weight:800;color:'+phaseColor+';">−'+Math.abs(deltaPeso)+' kg grasso</span>'
+              +'</div>'
+              +'<div style="display:flex;justify-content:space-between;margin-top:2px;">'
+              +'<span style="font-size:8px;color:var(--text-muted);">Deficit</span>'
+              +'<span style="font-size:10px;font-weight:800;color:'+phaseColor+';">~'+paceKg+' kg/sett · ~'+gramDayP+'g/die</span>'
+              +'</div>'
+              +'</div>';
+          } else if(obj2==='recomposizione'){
+            statusHtml =
+              '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
+              +'<span style="font-size:9px;color:var(--text-secondary);">Peso (stabile)</span>'
+              +'<span style="font-size:11px;font-weight:800;color:var(--text-primary);">'+pesoAtt+' kg</span>'
+              +'</div>'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+              +'<span style="font-size:9px;color:var(--text-secondary);">BF target</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">'+bfAtt+'% → '+bfObj+'%</span>'
+              +'</div>'
+              +'<div style="background:'+phaseBg+';border:1px solid '+phaseBorder+';border-radius:7px;padding:5px 7px;margin-bottom:4px;">'
+              +'<span style="font-size:8px;color:var(--text-muted);">Grasso → muscolo (peso invariato)</span>'
+              +'<div style="font-size:10px;font-weight:800;color:'+phaseColor+';margin-top:2px;">−'+Math.abs(deltaBF)+'% BF · +massa magra</div>'
+              +'</div>';
           } else {
-            // mantenimento
-            emoji = '✅';
-            coloreObj = '#2e7d32'; bgObj = 'rgba(46,125,50,0.06)'; borderObj = 'rgba(46,125,50,0.25)';
-            rows = [
-              ['⚖️ Peso target', pesoAtt + ' kg (stabile)'],
-              ['📊 BF da mantenere', bfAtt + '%'],
-              ['💪 Massa magra', mmAtt + ' kg'],
-              ['🔥 Calorie mantenimento', m.kcalActual + ' kcal/die'],
-            ];
+            statusHtml =
+              '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
+              +'<span style="font-size:9px;color:var(--text-secondary);">Peso target</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">'+pesoAtt+' kg</span>'
+              +'</div>'
+              +'<div style="background:'+phaseBg+';border:1px solid '+phaseBorder+';border-radius:7px;padding:5px 7px;margin-bottom:4px;">'
+              +'<span style="font-size:9px;color:var(--text-muted);">Mantieni peso e composizione corporea</span>'
+              +'</div>';
           }
-
-          // Calcola checkpoint tra 2 settimane
-          var chk2 = weeksRemaining > 0 ? Math.min(2, weeksRemaining) : 0;
-          var chkPeso2 = '';
-          if(chk2 > 0 && kgPerSett) {
-            if(obj2 === 'dimagrimento' || obj2 === 'peaking') {
-              chkPeso2 = 'Tra ' + chk2 + ' sett. → ~' + (Math.round((pesoAtt - kgPerSett * chk2)*10)/10) + ' kg';
-            } else if(obj2 === 'massa') {
-              chkPeso2 = 'Tra ' + chk2 + ' sett. → ~' + (Math.round((pesoAtt + kgPerSett * chk2)*10)/10) + ' kg';
-            }
-          }
-
-          var rowsHtml = rows.map(function(r){
-            return '<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(0,0,0,0.04);">'
-              + '<span style="font-size:9px;color:var(--text-secondary);">'+r[0]+'</span>'
-              + '<span style="font-size:10px;font-weight:800;color:'+coloreObj+';">'+r[1]+'</span>'
-              + '</div>';
-          }).join('');
-
-          return '<div style="background:'+bgObj+';border-radius:8px;padding:8px 10px;border:1.5px solid '+borderObj+';margin-top:4px;">'
-            + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">'
-            + '<span style="font-size:14px;">'+emoji+'</span>'
-            + '<div style="font-size:8px;font-weight:800;color:'+coloreObj+';text-transform:uppercase;letter-spacing:0.5px;">Dove devi arrivare</div>'
-            + '<div style="margin-left:auto;font-size:9px;font-weight:700;color:'+coloreObj+';background:rgba(0,0,0,0.06);border-radius:99px;padding:2px 7px;">'+goalLbl+' · '+(fmtDate(goalDate)||'')+'</div>'
-            + '</div>'
-            + rowsHtml
-            + (chkPeso2 ? '<div style="margin-top:6px;background:rgba(0,0,0,0.05);border-radius:6px;padding:4px 8px;font-size:9px;font-weight:700;color:'+coloreObj+';">📍 Prossimo check: '+chkPeso2+'</div>' : '')
-            + '</div>';
+          return '<div style="background:'+phaseBg+';border-radius:8px;padding:7px 8px;border:1px solid '+phaseBorder+';">'
+            +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">'
+            +'<div style="font-size:7px;font-weight:700;color:'+phaseColor+';text-transform:uppercase;letter-spacing:0.4px;">'+phaseIcon+' '+phaseLabel+'</div>'
+            +'<div style="font-size:14px;font-weight:800;color:'+phaseColor+';">'+goalLbl+'</div>'
+            +'</div>'
+            +(fmtDate(goalDate)?'<div style="font-size:8px;color:var(--text-muted);margin-bottom:5px;">📅 Scadenza: '+fmtDate(goalDate)+'</div>':'')
+            +statusHtml
+            +(reached?'<div style="background:'+phaseColor+';border-radius:5px;padding:3px 7px;font-size:9px;font-weight:800;color:#fff;text-align:center;">🎉 OBIETTIVO RAGGIUNTO!</div>':'')
+            +'</div>';
         })()
         +(isCheckDue?'<button style="width:100%;background:var(--tatanka-red);border:none;border-radius:8px;padding:5px;color:#fff;font-size:9px;font-weight:700;cursor:pointer;font-family:var(--font-body);" onclick="openModal(\'modal-controllo\');renderControllo()">⚡ Controllo ora!</button>':'')
         +'</div>';
@@ -13205,7 +13229,7 @@ function ricettaRestart() {
       <div class="pro-badge" style="margin-bottom:18px;">⚡ TATANKA PRO</div>
       <h1 id="paywall-title" style="color:#fff;font-size:22px;font-weight:900;margin-bottom:10px;line-height:1.3;">La prova gratuita è terminata</h1>
       <p id="paywall-sub" style="color:rgba(255,255,255,0.55);font-size:13px;margin-bottom:22px;line-height:1.7;">
-        I tuoi 14 giorni di prova gratuita sono terminati.<br>Abbonati per continuare ad accedere a tutte le funzionalità.
+        ⚠️ TEST STRIPE: Periodo di prova scaduto (1 giorno di test).<br>Abbonati per continuare ad accedere a tutto.
       </p>
       <div style="color:#fff;font-size:38px;font-weight:900;line-height:1;">3,69€</div>
       <div style="font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:6px;">al mese</div>
@@ -13288,9 +13312,9 @@ function ricettaRestart() {
 
 const STRIPE_LINK   = 'https://buy.stripe.com/3cIaEX2GZfnVgUIcJ52sM00';
 const APP_BASE_URL  = 'https://tatankanutripro.github.io/tatanka';
-const TRIAL_MS      = 14 * 24 * 60 * 60 * 1000;  // 14 giorni di prova gratuita
-const PRO_MS        = 30 * 24 * 60 * 60 * 1000;  // 30 giorni di abbonamento
-const RENEW_WARN    =  5 * 24 * 60 * 60 * 1000;  // avviso rinnovo 5gg prima
+const TRIAL_MS      =  0;  // TEST: trial AZZERATO → paywall immediato all'apertura
+const PRO_MS        =  2 * 24 * 60 * 60 * 1000;  // TEST: 2 giorni invece di 30
+const RENEW_WARN    = 3  * 24 * 60 * 60 * 1000;  // avviso rinnovo 3gg prima
 
 let _proActive = false;
 
@@ -13703,9 +13727,9 @@ const LEGAL_CONTENT = {
     <p>TATANKA Nutrition Pro è un'applicazione web per il monitoraggio nutrizionale a scopo puramente informativo ed educativo. Non costituisce consulenza medica o nutrizionale professionale.</p>
     <h3>3. Abbonamento e Pagamento</h3>
     <ul>
-      <li>Periodo di prova gratuita: <strong>14 giorni</strong> dal primo accesso</li>
-      <li>Costo abbonamento: <strong>3,69 € / mese</strong> (IVA inclusa)</li>
-      <li>Durata abbonamento: <strong>30 giorni</strong> per ciclo di rinnovo</li>
+      <li>Periodo di prova: 1 giorno (TEST STRIPE)</li>
+      <li>Costo abbonamento: <strong>3,69 € / mese</strong> · TEST: durata 2 giorni (IVA inclusa)</li>
+      <li>TEST: durata 2 giorni (invece di 30)</li>
       <li>Pagamento gestito da <strong>Stripe Inc.</strong> tramite carta di credito/debito (PCI-DSS compliant)</li>
       <li>Per disdire: scrivi a tatankapt@gmail.com almeno 48 ore prima del rinnovo</li>
     </ul>
