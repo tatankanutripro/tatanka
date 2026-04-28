@@ -30,14 +30,23 @@
   <!-- ═══ SERVICE WORKER REGISTRATION ═══ -->
   <script>
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/tatanka/sw.js')
-          .then(function(reg) { console.log('[SW] Registrato:', reg.scope); })
-          .catch(function(err) { console.log('[SW] Errore:', err); });
-      });
+      var _swAllowed = [
+        'tatankanutripro.github.io',
+        '127.0.0.1',
+        'localhost'
+      ];
+      var _swHost = window.location.hostname;
+      if (_swAllowed.some(function(d){ return _swHost === d || _swHost.endsWith('.' + d); })) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/tatanka/sw.js')
+            .then(function(reg) { console.log('[SW] Registrato:', reg.scope); })
+            .catch(function(err) { console.log('[SW] Errore:', err); });
+        });
+      }
     }
   </script>
-<title>⚠️ TEST STRIPE — TATANKA Nutrition Pro</title>
+<title>TATANKA Nutrition Pro</title>
+  <!-- VERSION: FREE — nessun sistema di pagamento -->
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -254,44 +263,7 @@ body {
   z-index: 100;
 }
 
-/* ===== PRO / TRIAL SYSTEM ===== */
-.pro-overlay { position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.90);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .3s ease; }
-.pro-modal { background:#1c1c1e;border-radius:28px;padding:32px 24px;max-width:360px;width:100%;text-align:center;border:1px solid rgba(255,255,255,0.1);box-shadow:0 32px 80px rgba(0,0,0,0.6); }
-.pro-badge { display:inline-block;background:linear-gradient(135deg,#c9a227,#f0c040);color:#111;font-size:10px;font-weight:800;letter-spacing:2px;padding:4px 12px;border-radius:99px;margin-bottom:16px;text-transform:uppercase; }
-.pro-modal h2 { color:#fff;font-size:22px;font-weight:800;margin-bottom:8px; }
-.pro-modal p { color:rgba(255,255,255,0.6);font-size:13px;margin-bottom:20px;line-height:1.5; }
-.pro-features { list-style:none;margin-bottom:24px;text-align:left; }
-.pro-features li { color:rgba(255,255,255,0.85);font-size:13px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:10px; }
-.pro-features li:last-child { border-bottom:none; }
-.pro-price { color:#fff;font-size:32px;font-weight:800;margin-bottom:4px; }
-.pro-price span { font-size:14px;font-weight:400;color:rgba(255,255,255,0.5); }
-.btn-pro-subscribe { width:100%;background:linear-gradient(135deg,#c9a227,#f0c040);color:#111;border:none;border-radius:16px;padding:16px;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:12px;transition:opacity .2s;letter-spacing:0.3px; }
-.btn-pro-subscribe:hover { opacity:0.9; }
-.btn-pro-subscribe:disabled { opacity:0.6;cursor:not-allowed; }
-.btn-pro-close { width:100%;background:transparent;color:rgba(255,255,255,0.4);border:none;font-size:13px;cursor:pointer;padding:8px; }
-.btn-pro-restore { width:100%;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:10px;font-size:12px;cursor:pointer;margin-bottom:8px; }
-.pro-status-bar { background:linear-gradient(135deg,#c9a227,#f0c040);padding:6px 16px;text-align:center;font-size:10px;font-weight:800;color:#111;letter-spacing:1px; }
-.trial-bar { background:linear-gradient(135deg,#1565c0,#1976d2);padding:8px 16px;text-align:center;font-size:11px;font-weight:600;color:#fff;letter-spacing:0.3px;display:flex;align-items:center;justify-content:center;gap:8px; }
-.trial-bar .trial-days { background:rgba(255,255,255,0.2);border-radius:99px;padding:2px 10px;font-weight:800; }
-.trial-bar .trial-cta { background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;padding:3px 10px;font-size:10px;cursor:pointer;color:#fff;font-weight:700; }
-.hard-paywall { position:fixed;inset:0;z-index:99999;background:#111;display:flex;align-items:center;justify-content:center;padding:20px; }
-.hard-paywall-inner { max-width:360px;width:100%;text-align:center; }
-.hard-paywall-logo { font-size:52px;margin-bottom:12px; }
-.hard-paywall h1 { color:#fff;font-size:24px;font-weight:900;margin-bottom:8px;letter-spacing:-0.5px; }
-.hard-paywall .sub { color:rgba(255,255,255,0.55);font-size:13px;margin-bottom:28px;line-height:1.6; }
-.hard-paywall-price { color:#fff;font-size:38px;font-weight:900;margin-bottom:4px; }
-.hard-paywall-price span { font-size:15px;font-weight:400;color:rgba(255,255,255,0.45); }
-.hard-paywall-note { font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:24px; }
-.hard-paywall-features { background:rgba(255,255,255,0.04);border-radius:16px;padding:16px;margin-bottom:24px;text-align:left; }
-.hard-paywall-features li { color:rgba(255,255,255,0.8);font-size:13px;padding:5px 0;display:flex;align-items:center;gap:8px;list-style:none; }
-.pending-badge { background:rgba(201,162,39,0.15);border:1px solid rgba(201,162,39,0.3);border-radius:12px;padding:12px;margin-bottom:16px;font-size:12px;color:#c9a227;line-height:1.5; }
-@media(min-width:500px) {
-  .bottom-nav {
-    position: sticky;
-    bottom: 0;
-    border-radius: 0 0 36px 36px;
-  }
-}
+
 .nav-item {
   flex: 1;
   display: flex;
@@ -603,7 +575,7 @@ body {
       <button class="legal-footer-btn" onclick="openLegal('terms')">Termini di Servizio</button>
       <button class="legal-footer-btn" onclick="openLegal('disclaimer')">Disclaimer Medico</button>
     </div>
-    <div style="margin-top:12px;color:rgba(255,255,255,0.2);font-size:10px;">🧪 FILE TEST STRIPE · Trial 1gg · Sub 2gg · v1.0</div>
+
     <div style="margin-top:20px;color:rgba(255,255,255,0.25);font-size:11px;">Versione 1.0 · Tutti i dati sono privati e locali</div>
   </div>
 
@@ -3799,11 +3771,7 @@ function renderSupplementAdvice() {
 // ---- NAVIGATION ----
 function goToOnboarding() {
   // ── PRIMO CLICK: avvia il trial di 14 giorni ──────────────
-  // TEST STRIPE: imposta trial_start nel passato (solo se non esiste già)
-  // NON cancellare tatanka_pro altrimenti si blocca ad ogni refresh!
-  if (!localStorage.getItem('tatanka_trial_start')) {
-    localStorage.setItem('tatanka_trial_start', String(Date.now() - 7200000));
-  }
+
   if(APP.profile && APP.profile.macros) { showMainDashboard(); return; }
   currentStep = 1;
   showPage('profilo');
@@ -13194,501 +13162,7 @@ function ricettaRestart() {
 }
 </style>
 
-<!-- ============================================================
-     PRO OVERLAY — abbonamento (aperto dal banner trial)
-     ============================================================ -->
-<div id="pro-overlay" class="pro-overlay" style="display:none;">
-  <div class="pro-modal">
-    <div class="pro-badge">⚡ TATANKA PRO</div>
-    <div style="font-size:44px;margin-bottom:10px;">🦬</div>
-    <h2>Sblocca tutto il potenziale</h2>
-    <p>Accedi a tutte le funzioni premium di TATANKA Nutrition Pro</p>
-    <ul class="pro-features">
-      <li>🍳 <span><strong>Ricette</strong> — libreria completa con guida vocale</span></li>
-      <li>⏱️ <span><strong>Digiuno Intermittente</strong> — timer e protocolli</span></li>
-      <li>📈 <span><strong>Grafici</strong> — analisi andamento nel tempo</span></li>
-      <li>📅 <span><strong>Piano Settimanale</strong> — completo e personalizzato</span></li>
-      <li>✅ <span>Aggiornamenti continui inclusi</span></li>
-    </ul>
-    <div class="pro-price">3,69€ <span>/ mese</span></div>
-    <p style="font-size:11px;color:rgba(255,255,255,0.35);margin-bottom:20px;">Cancella quando vuoi. Nessun vincolo.</p>
-    <button class="btn-pro-subscribe" onclick="startStripeCheckout()">
-      🔓 Abbonati ora — 3,69€/mese
-    </button>
-    <button class="btn-pro-close" onclick="closeProOverlay()">Forse più tardi</button>
-  </div>
-</div>
-
-<!-- ============================================================
-     HARD PAYWALL — blocca l'app dopo scadenza trial o abbonamento
-     ============================================================ -->
-<div id="hard-paywall" style="display:none;position:fixed;inset:0;z-index:99999;background:#0d0d0d;overflow-y:auto;">
-  <div style="min-height:100%;display:flex;align-items:center;justify-content:center;padding:28px 20px;">
-    <div style="max-width:360px;width:100%;text-align:center;">
-      <div style="font-size:56px;margin-bottom:6px;">🦬</div>
-      <div class="pro-badge" style="margin-bottom:18px;">⚡ TATANKA PRO</div>
-      <h1 id="paywall-title" style="color:#fff;font-size:22px;font-weight:900;margin-bottom:10px;line-height:1.3;">La prova gratuita è terminata</h1>
-      <p id="paywall-sub" style="color:rgba(255,255,255,0.55);font-size:13px;margin-bottom:22px;line-height:1.7;">
-        ⚠️ TEST STRIPE: Periodo di prova scaduto (1 giorno di test).<br>Abbonati per continuare ad accedere a tutto.
-      </p>
-      <div style="color:#fff;font-size:38px;font-weight:900;line-height:1;">3,69€</div>
-      <div style="font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:6px;">al mese</div>
-      <p style="font-size:11px;color:rgba(255,255,255,0.25);margin-bottom:22px;">Cancella quando vuoi · Nessun vincolo</p>
-      <ul class="hard-paywall-features" style="margin-bottom:24px;">
-        <li>🏠 <span>Dashboard completa con macro e semafori</span></li>
-        <li>🍳 <span>Ricette con guida vocale passo-passo</span></li>
-        <li>⏱️ <span>Digiuno intermittente con timer</span></li>
-        <li>📈 <span>Grafici andamento nel tempo</span></li>
-        <li>📅 <span>Piano settimanale personalizzato</span></li>
-        <li>🤖 <span>Coach AI nutrizionale integrato</span></li>
-      </ul>
-      <button class="btn-pro-subscribe" onclick="startStripeCheckout()" style="font-size:16px;padding:18px;">
-        🔓 Abbonati ora — 3,69€/mese
-      </button>
-      <p style="font-size:10px;color:rgba(255,255,255,0.18);margin-top:18px;">
-        Problemi? <a href="/cdn-cgi/l/email-protection#40342134212e2b21303400272d21292c6e232f2d" style="color:rgba(255,255,255,0.3);text-decoration:none;"><span class="__cf_email__" data-cfemail="0d796c796c63666c7d794d6a606c6461236e6260">[email&#160;protected]</span></a>
-      </p>
-    </div>
-  </div>
-</div>
-
-<!-- ============================================================
-     MODAL SUCCESSO — appare subito dopo il pagamento
-     ============================================================ -->
-<div id="pro-success-modal" style="display:none;position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,0.92);backdrop-filter:blur(16px);align-items:center;justify-content:center;padding:24px;">
-  <div style="background:linear-gradient(160deg,#1a1a1a,#111);border-radius:28px;padding:36px 24px;max-width:340px;width:100%;text-align:center;border:1px solid rgba(201,162,39,0.3);box-shadow:0 0 80px rgba(201,162,39,0.2),0 0 0 1px rgba(255,255,255,0.05);">
-
-    <!-- Animazione check -->
-    <div style="width:72px;height:72px;background:linear-gradient(135deg,#2e7d32,#43a047);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:36px;box-shadow:0 0 30px rgba(67,160,71,0.4);animation:pulse 1.5s infinite;">✅</div>
-
-    <div style="display:inline-block;background:linear-gradient(135deg,#c9a227,#f0c040);color:#111;font-size:9px;font-weight:900;letter-spacing:2.5px;padding:4px 14px;border-radius:99px;margin-bottom:14px;text-transform:uppercase;">PAGAMENTO CONFERMATO</div>
-
-    <h2 style="color:#fff;font-size:26px;font-weight:900;margin-bottom:6px;letter-spacing:-0.5px;">TATANKA sbloccato! 🦬</h2>
-    <p style="color:rgba(255,255,255,0.55);font-size:13px;margin-bottom:22px;line-height:1.6;">
-      Benvenuto in TATANKA Pro.<br>Hai <strong style="color:#c9a227;">30 giorni</strong> di accesso completo a tutto.
-    </p>
-
-    <!-- Scadenza -->
-    <div style="background:rgba(201,162,39,0.1);border:1px solid rgba(201,162,39,0.25);border-radius:16px;padding:16px;margin-bottom:22px;">
-      <p style="color:rgba(255,255,255,0.4);font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Abbonamento attivo fino al</p>
-      <p id="success-expiry-date" style="color:#f0c040;font-size:22px;font-weight:900;margin:0;letter-spacing:0.5px;">—</p>
-    </div>
-
-    <!-- Lista features sbloccate -->
-    <div style="background:rgba(255,255,255,0.04);border-radius:14px;padding:14px 16px;margin-bottom:24px;text-align:left;">
-      <p style="color:rgba(255,255,255,0.3);font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Ora disponibile</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div style="color:rgba(255,255,255,0.85);font-size:12px;display:flex;align-items:center;gap:6px;"><span style="color:#43a047;">✓</span> Ricette</div>
-        <div style="color:rgba(255,255,255,0.85);font-size:12px;display:flex;align-items:center;gap:6px;"><span style="color:#43a047;">✓</span> Digiuno</div>
-        <div style="color:rgba(255,255,255,0.85);font-size:12px;display:flex;align-items:center;gap:6px;"><span style="color:#43a047;">✓</span> Grafici</div>
-        <div style="color:rgba(255,255,255,0.85);font-size:12px;display:flex;align-items:center;gap:6px;"><span style="color:#43a047;">✓</span> Piano Sett.</div>
-        <div style="color:rgba(255,255,255,0.85);font-size:12px;display:flex;align-items:center;gap:6px;"><span style="color:#43a047;">✓</span> Coach AI</div>
-        <div style="color:rgba(255,255,255,0.85);font-size:12px;display:flex;align-items:center;gap:6px;"><span style="color:#43a047;">✓</span> Dashboard</div>
-      </div>
-    </div>
-
-    <button onclick="closeSuccessModal()"
-      style="width:100%;background:linear-gradient(135deg,#c9a227,#f0c040);color:#111;border:none;
-             border-radius:16px;padding:17px;font-size:16px;font-weight:900;cursor:pointer;
-             letter-spacing:0.3px;box-shadow:0 8px 24px rgba(201,162,39,0.35);">
-      🚀 Entra in TATANKA Pro
-    </button>
-  </div>
-</div>
-
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-// ============================================================
-// TATANKA PRO — Sistema Abbonamento Completo
-// Trial 14 giorni libero → paywall → Stripe 30gg → rinnovo
-// ⚠️ IMPORTANTE: il trial parte solo al PRIMO click sul bottone
-//    "BENVENUTO — CLICCA PER ACCEDERE" nella splash page.
-//    In questo modo l'utente che scarica il file oggi non brucia
-//    giorni di prova prima di aprirlo per la prima volta.
-//
-// SETUP STRIPE (una volta sola nel Dashboard):
-//   Payment Links → il tuo link → Modifica
-//   → URL di conferma: [URL-della-tua-app]?pro=success
-// ============================================================
-
-const STRIPE_LINK   = 'https://buy.stripe.com/3cIaEX2GZfnVgUIcJ52sM00';
-const APP_BASE_URL  = 'https://tatankanutripro.github.io/tatanka';
-const TRIAL_MS      =  0;  // TEST: trial AZZERATO → paywall immediato all'apertura
-const PRO_MS        =  2 * 24 * 60 * 60 * 1000;  // TEST: 2 giorni invece di 30
-const RENEW_WARN    = 3  * 24 * 60 * 60 * 1000;  // avviso rinnovo 3gg prima
-
-let _proActive = false;
-
-// ── Formatta data DD/MM/YYYY ──────────────────────────────────
-function _fmt(ts) {
-  const d = new Date(ts);
-  return String(d.getDate()).padStart(2,'0') + '/' +
-         String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
-}
-
-// ── Checkout Stripe ──────────────────────────────────────────
-// IMPORTANTE: nel Dashboard Stripe → Payment Link → Edit →
-// "Redirect customers to your website" →
-// https://tatankanutripro.github.io/tatanka/?pro=success
-function startStripeCheckout() {
-  window.location.href = STRIPE_LINK;
-}
-
-// ── Attiva PRO 30 giorni ─────────────────────────────────────
-function activatePro() {
-  _proActive = true;
-  const exp = Date.now() + PRO_MS;
-  localStorage.setItem('tatanka_pro', JSON.stringify({ ts: Date.now(), exp }));
-
-  // Chiudi tutti i paywall
-  ['hard-paywall','pro-overlay'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = 'none';
-  });
-
-  // Rimuovi eventuali banner trial/rinnovo
-  ['trial-bar','renew-bar'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.remove();
-  });
-
-  // Mostra modal di successo
-  const dateEl = document.getElementById('success-expiry-date');
-  if (dateEl) dateEl.textContent = _fmt(exp);
-  const modal = document.getElementById('pro-success-modal');
-  if (modal) modal.style.display = 'flex';
-}
-
-function closeSuccessModal() {
-  const modal = document.getElementById('pro-success-modal');
-  if (modal) modal.style.display = 'none';
-  _showProBar();
-}
-
-// ── Barra PRO ATTIVO ─────────────────────────────────────────
-function _showProBar() {
-  if (document.getElementById('pro-status-bar')) return;
-  const bar = document.createElement('div');
-  bar.id = 'pro-status-bar';
-  bar.className = 'pro-status-bar';
-  try {
-    const s = JSON.parse(localStorage.getItem('tatanka_pro') || '{}');
-    bar.textContent = s.exp
-      ? '⚡ TATANKA PRO ATTIVO · Scade il ' + _fmt(s.exp)
-      : '⚡ TATANKA PRO ATTIVO';
-  } catch(e) { bar.textContent = '⚡ TATANKA PRO ATTIVO'; }
-  const app = document.getElementById('app');
-  if (app) app.prepend(bar);
-}
-
-// ── Banner trial (giorni 1-3, tutto libero) ──────────────────
-function _showTrialBar(daysLeft, hoursLeft) {
-  // Rimuovi il vecchio banner se esiste (per aggiornare il conteggio)
-  const old = document.getElementById('trial-bar');
-  if (old) old.remove();
-  const bar = document.createElement('div');
-  bar.id = 'trial-bar';
-  bar.className = 'trial-bar';
-  // daysLeft è sempre >= 1 grazie a Math.ceil (il paywall scatta prima di 0)
-  let label = daysLeft >= 2
-    ? '<span class="trial-days">' + daysLeft + ' giorni gratuiti</span>'
-    : '<span class="trial-days" style="background:rgba(211,47,47,0.4);">⚠️ Ultimo giorno gratuito!</span>';
-  bar.innerHTML = '🆓 Prova gratuita: ' + label +
-    ' &nbsp;<button class="trial-cta" onclick="showProOverlay()">Abbonati →</button>';
-  const app = document.getElementById('app');
-  if (app) app.prepend(bar);
-}
-
-// ── Banner rinnovo imminente (ultimi 3 giorni del PRO) ────────
-function _showRenewBar(daysLeft, expiryDateStr) {
-  if (document.getElementById('renew-bar')) return;
-  const bar = document.createElement('div');
-  bar.id = 'renew-bar';
-  bar.style.cssText = 'background:linear-gradient(135deg,#e65100,#f57c00);padding:10px 16px;text-align:center;font-size:11px;font-weight:600;color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;flex-shrink:0;flex-wrap:wrap;';
-  const label = daysLeft <= 1 ? 'Scade oggi!' : 'Scade tra ' + daysLeft + (daysLeft === 1 ? ' giorno' : ' giorni');
-  const dateInfo = expiryDateStr ? ' (' + expiryDateStr + ')' : '';
-  bar.innerHTML =
-    '<span>🔄 Abbonamento in scadenza' + dateInfo + ' — <strong>' + label + '</strong></span>'
-    + '<span style="font-size:10px;opacity:0.85;">Il rinnovo automatico avverrà via Stripe al momento della scadenza.</span>'
-    + '<button onclick="openCancelInfo()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.35);color:#fff;border-radius:8px;padding:3px 10px;font-size:10px;cursor:pointer;">Come disdire</button>';
-  const app = document.getElementById('app');
-  if (app) app.prepend(bar);
-}
-
-// ── Overlay PRO (dal trial) ───────────────────────────────────
-function showProOverlay() {
-  const el = document.getElementById('pro-overlay');
-  if (el) el.style.display = 'flex';
-}
-function closeProOverlay() {
-  const el = document.getElementById('pro-overlay');
-  if (el) el.style.display = 'none';
-}
-
-// ── Hard paywall ─────────────────────────────────────────────
-function _showHardPaywall(isRenewal) {
-  const hw = document.getElementById('hard-paywall');
-  if (!hw) return;
-
-  const titleText = isRenewal ? 'Abbonamento scaduto' : 'Sblocca TATANKA Pro';
-  const subText   = isRenewal
-    ? 'Il tuo abbonamento è terminato. Rinnova per continuare ad accedere a tutte le funzionalità.'
-    : 'Il periodo di prova è terminato. Abbonati per continuare a usare TATANKA Nutrition Pro.';
-
-  hw.innerHTML =
-    '<div style="max-width:400px;width:100%;margin:0 auto;padding:28px 20px 40px;">'
-
-    // Logo
-    + '<div style="text-align:center;margin-bottom:24px;">'
-    + '<div style="font-size:50px;margin-bottom:8px;">🦬</div>'
-    + '<div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:1.5px;">TATANKA PRO</div>'
-    + '</div>'
-
-    // Titolo dinamico
-    + '<div style="font-size:20px;font-weight:800;color:#fff;text-align:center;margin-bottom:6px;">' + titleText + '</div>'
-    + '<div style="font-size:13px;color:rgba(255,255,255,0.6);text-align:center;line-height:1.6;margin-bottom:22px;">' + subText + '</div>'
-
-    // Card prezzo
-    + '<div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:18px;padding:20px;margin-bottom:16px;">'
-
-    // Prezzo
-    + '<div style="display:flex;align-items:flex-end;gap:6px;margin-bottom:16px;">'
-    + '<div style="font-size:36px;font-weight:900;color:#fff;line-height:1;">3,69€</div>'
-    + '<div style="font-size:13px;color:rgba(255,255,255,0.45);margin-bottom:6px;">/mese</div>'
-    + '</div>'
-
-    // Features incluse
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:16px;">'
-    + ['Piani pasto personalizzati','Calcolo macro preciso','68+ ricette per sportivi','Digiuno intermittente','Tracciamento peso','Database alimenti'].map(function(f){
-        return '<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,0.7);">'
-          + '<span style="color:#c9a227;font-size:12px;">✓</span>' + f + '</div>';
-      }).join('')
-    + '</div>'
-
-    // Rinnovo automatico
-    + '<div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:10px 12px;margin-bottom:10px;">'
-    + '<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">'
-    + '<input type="checkbox" id="auto-renew-check" checked style="width:16px;height:16px;margin-top:3px;accent-color:#c9a227;cursor:pointer;flex-shrink:0;">'
-    + '<div>'
-    + '<div style="font-size:11px;font-weight:700;color:#fff;">Rinnovo automatico</div>'
-    + '<div style="font-size:10px;color:rgba(255,255,255,0.45);line-height:1.5;margin-top:2px;">L&#8217;abbonamento si rinnova ogni mese a 3,69&#8364;. Disdici quando vuoi prima del rinnovo.</div>'
-    + '</div></label></div>'
-
-    // Disdetta
-    + '<div style="display:flex;align-items:flex-start;gap:8px;">'
-    + '<span style="font-size:13px;color:#4caf50;">✓</span>'
-    + '<div style="font-size:10px;color:rgba(255,255,255,0.5);line-height:1.5;">'
-    + 'Nessun vincolo — disdici in qualsiasi momento via email a <strong style="color:rgba(255,255,255,0.7);">tatankapt@gmail.com</strong> o dal portale Stripe. Art. 65-bis Cod. Consumo.'
-    + '</div></div>'
-    + '</div>'
-
-    // Pulsante paga
-    + '<button onclick="startStripeCheckout()" '
-    + 'style="width:100%;padding:16px;background:linear-gradient(135deg,#c9a227,#e6b800);color:#111;'
-    + 'border:none;border-radius:14px;font-size:15px;font-weight:900;cursor:pointer;'
-    + 'letter-spacing:0.3px;margin-bottom:10px;font-family:var(--font-body);">'
-    + '💳 Abbonati con Stripe — 3,69€/mese</button>'
-
-    // Sicurezza
-    + '<div style="text-align:center;font-size:10px;color:rgba(255,255,255,0.3);margin-bottom:16px;">'
-    + '🔒 Pagamento sicuro Stripe · PCI-DSS compliant · Carta di credito/debito'
-    + '</div>'
-
-    // Link legali
-    + '<div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;">'
-    + '<button onclick="openLegal(\"terms\")" style="background:none;border:none;color:rgba(255,255,255,0.3);font-size:10px;cursor:pointer;text-decoration:underline;font-family:var(--font-body);">Termini</button>'
-    + '<button onclick="openLegal(\"privacy\")" style="background:none;border:none;color:rgba(255,255,255,0.3);font-size:10px;cursor:pointer;text-decoration:underline;font-family:var(--font-body);">Privacy</button>'
-    + '<button onclick="openCancelInfo()" style="background:none;border:none;color:rgba(255,255,255,0.3);font-size:10px;cursor:pointer;text-decoration:underline;font-family:var(--font-body);">Come disdire</button>'
-    + '</div>'
-    + '</div>';
-
-  hw.style.display = 'flex';
-  hw.style.alignItems = 'flex-start';
-  hw.style.justifyContent = 'center';
-  hw.style.overflowY = 'auto';
-  hw.style.paddingTop = '40px';
-}
-
-// Pannello "Come disdire" conforme art. 65-bis
-function openCancelInfo() {
-  const overlay = document.getElementById('legal-modal-overlay');
-  const box = document.getElementById('legal-modal-content');
-  if(!overlay || !box) return;
-  box.innerHTML = `
-    <h2>❌ Come disdire l'abbonamento</h2>
-    <h3>Metodo 1 — Via email (più semplice)</h3>
-    <p>Invia una email a <strong>tatankapt@gmail.com</strong> con oggetto "Disdetta abbonamento TATANKA" almeno 48 ore prima del prossimo rinnovo. Riceverai conferma entro 24 ore.</p>
-    <h3>Metodo 2 — Portale Stripe</h3>
-    <p>Accedi al tuo portale cliente Stripe (link inviato via email dopo il pagamento) e clicca "Annulla abbonamento". La disdetta è immediata e gratuita.</p>
-    <h3>Effetto della disdetta</h3>
-    <p>Dopo la disdetta, l'accesso rimane attivo fino alla scadenza del periodo già pagato. Non vengono addebitati ulteriori importi.</p>
-    <h3>Diritto di recesso (14 giorni)</h3>
-    <p>Hai diritto di recedere entro 14 giorni dall'acquisto senza dover fornire motivazioni, ai sensi del D.Lgs. 206/2005. Il rimborso avverrà entro 14 giorni via Stripe.</p>
-    <h3>Normativa applicabile</h3>
-    <p>Art. 65-bis Codice del Consumo (obbligo preavviso rinnovo) · Art. 33 D.Lgs. 206/2005 (clausole vessatorie) · Foro competente: Catania.</p>`;
-  overlay.classList.add('open');
-}
-
-// simulateStripeSuccess rimosso: il test avviene con Stripe reale
-
-// ═══════════════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════════════
-function initProSystem() {
-
-  // ── RESET ADMIN: ?reset=tatanka5991 — solo per il proprietario
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('reset') === 'tatanka5991') {
-    localStorage.clear();
-    window.history.replaceState({}, '', window.location.pathname);
-    const msg = document.createElement('div');
-    msg.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#111;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;';
-    msg.innerHTML = '<div style="font-size:48px;">🔄</div>'
-      + '<p style="color:#fff;font-size:18px;font-weight:700;">Reset completato</p>'
-      + '<p style="color:rgba(255,255,255,0.5);font-size:13px;">Tutti i dati cancellati.<br>Ricarica la pagina per ricominciare.</p>'
-      + '<button onclick="location.reload()" style="background:#c9a227;color:#111;border:none;border-radius:12px;padding:12px 24px;font-size:14px;font-weight:800;cursor:pointer;">Ricarica →</button>';
-    document.body.appendChild(msg);
-    return;
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  // MECCANISMO 1 — Ritorno da Stripe con ?pro=success
-  // Stripe redirige qui DOPO ogni pagamento riuscito
-  // (primo acquisto E rinnovi automatici se configurato in Stripe)
-  // ══════════════════════════════════════════════════════════════
-  if (params.get('pro') === 'success') {
-    // Pulisce l'URL subito per evitare che un refresh riapra questo ramo
-    window.history.replaceState({}, '', window.location.pathname);
-
-    // Legge l'abbonamento attuale (se esiste)
-    let currentExp = 0;
-    try {
-      const existing = JSON.parse(localStorage.getItem('tatanka_pro') || 'null');
-      if (existing && existing.exp) currentExp = existing.exp;
-    } catch(e) {}
-
-    const now = Date.now();
-
-    // CASO A: abbonamento scaduto o inesistente → nuovo periodo
-    // CASO B: abbonamento ancora valido ma Stripe ha rinnovato in anticipo
-    //         → prolunga dalla scadenza attuale (non da oggi)
-    //         → evita di perdere giorni rimanenti
-    const newStart = (currentExp > now) ? currentExp : now;
-    const newExp   = newStart + PRO_MS;
-
-    _proActive = true;
-    localStorage.setItem('tatanka_pro', JSON.stringify({
-      ts:        now,
-      exp:       newExp,
-      renewable: true,          // rinnovo automatico Stripe attivo
-      renewCount: (() => {      // conta i rinnovi effettuati
-        try {
-          const prev = JSON.parse(localStorage.getItem('tatanka_pro') || '{}');
-          return (prev.renewCount || 0) + 1;
-        } catch(e) { return 1; }
-      })()
-    }));
-
-    // Chiudi paywall se aperto
-    ['hard-paywall','pro-overlay'].forEach(function(id) {
-      const el = document.getElementById(id);
-      if(el) el.style.display = 'none';
-    });
-
-    // Mostra modal di conferma pagamento
-    const modal = document.getElementById('pro-success-modal');
-    const dateEl = document.getElementById('success-expiry-date');
-    if(dateEl) dateEl.textContent = _fmt(newExp);
-    if(modal)  modal.style.display = 'flex';
-
-    // Mostra la barra PRO attiva
-    _showProBar();
-    return;
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  // MECCANISMO 2 — Abbonamento già salvato in localStorage
-  // Questo è il percorso normale ad ogni apertura/refresh
-  // ══════════════════════════════════════════════════════════════
-  const proRaw = localStorage.getItem('tatanka_pro');
-  if (proRaw) {
-    try {
-      const data = JSON.parse(proRaw);
-      const now  = Date.now();
-
-      if (data.exp && now < data.exp) {
-        // ── Abbonamento VALIDO ────────────────────────────────
-        _proActive = true;
-        const remaining = data.exp - now;
-        const daysLeft  = Math.max(1, Math.ceil(remaining / (1000*60*60*24)));
-
-        if (remaining <= RENEW_WARN) {
-          // Ultimi giorni: mostra avviso rinnovo con data esatta
-          _showRenewBar(daysLeft, _fmt(data.exp));
-        } else {
-          _showProBar();
-        }
-        return;
-      }
-
-      // ── Abbonamento SCADUTO ───────────────────────────────────
-      // Rimuove i dati scaduti e mostra il paywall di rinnovo
-      // NOTA: il rinnovo automatico Stripe addebita la carta e
-      // rimanda su ?pro=success — l'utente ritrova l'app aperta
-      // e il MECCANISMO 1 sopra aggiorna il localStorage.
-      // Se l'utente NON ha il rinnovo automatico (ha disdetto),
-      // Stripe NON addebita → NON arriva ?pro=success → paywall.
-      localStorage.removeItem('tatanka_pro');
-      _showHardPaywall(true);  // "Abbonamento scaduto"
-      return;
-
-    } catch(e) {
-      localStorage.removeItem('tatanka_pro');
-    }
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  // MECCANISMO 3 — Trial
-  // ══════════════════════════════════════════════════════════════
-  const trialRaw = localStorage.getItem('tatanka_trial_start');
-  if (!trialRaw) {
-    // Primo accesso assoluto: il trial parte con goToOnboarding()
-    return;
-  }
-
-  const trialStart = parseInt(trialRaw, 10);
-  const elapsed    = Date.now() - trialStart;
-  const remaining  = TRIAL_MS - elapsed;
-
-  if (elapsed >= TRIAL_MS) {
-    // Trial scaduto → paywall abbonamento
-    _showHardPaywall(false);  // "Periodo di prova terminato"
-  } else {
-    const daysLeft  = Math.ceil(remaining / (1000*60*60*24));
-    const hoursLeft = Math.ceil(remaining / (1000*60*60));
-    _showTrialBar(daysLeft, hoursLeft);
-  }
-}
-
-// ── Helper chiamato da goToOnboarding() al primo click ───────
-// Calcola i giorni rimasti e mostra il banner trial subito,
-// senza aspettare il prossimo reload della pagina.
-function _showTrialBarNow() {
-  const trialRaw = localStorage.getItem('tatanka_trial_start');
-  if (!trialRaw) return;
-  const trialStart = parseInt(trialRaw, 10);
-  const elapsed    = Date.now() - trialStart;
-  const remaining  = TRIAL_MS - elapsed;
-  if (remaining > 0) {
-    const daysLeft  = Math.ceil(remaining / (1000*60*60*24));
-    const hoursLeft = Math.ceil(remaining / (1000*60*60));
-    _showTrialBar(daysLeft, hoursLeft);
-  }
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-  setTimeout(initProSystem, 300);
-});
-
+<script>
 // ═══════════════════════════════════════════════════════════════
 // SISTEMA GDPR + LEGAL MODALS
 // ═══════════════════════════════════════════════════════════════
@@ -13727,9 +13201,7 @@ const LEGAL_CONTENT = {
     <p>TATANKA Nutrition Pro è un'applicazione web per il monitoraggio nutrizionale a scopo puramente informativo ed educativo. Non costituisce consulenza medica o nutrizionale professionale.</p>
     <h3>3. Abbonamento e Pagamento</h3>
     <ul>
-      <li>Periodo di prova: 1 giorno (TEST STRIPE)</li>
-      <li>Costo abbonamento: <strong>3,69 € / mese</strong> · TEST: durata 2 giorni (IVA inclusa)</li>
-      <li>TEST: durata 2 giorni (invece di 30)</li>
+      <li>Accesso completo gratuito</li>
       <li>Pagamento gestito da <strong>Stripe Inc.</strong> tramite carta di credito/debito (PCI-DSS compliant)</li>
       <li>Per disdire: scrivi a tatankapt@gmail.com almeno 48 ore prima del rinnovo</li>
     </ul>
