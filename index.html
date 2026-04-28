@@ -3807,10 +3807,11 @@ function renderSupplementAdvice() {
 // ---- NAVIGATION ----
 function goToOnboarding() {
   // ── PRIMO CLICK: avvia il trial di 14 giorni ──────────────
-  // TEST STRIPE: imposta trial_start nel passato (solo se non esiste già)
-  // NON cancellare tatanka_pro altrimenti si blocca ad ogni refresh!
+  // Salva l'ora esatta di inizio trial (solo se non esiste già)
   if (!localStorage.getItem('tatanka_trial_start')) {
-    localStorage.setItem('tatanka_trial_start', String(Date.now() - 7200000));
+    localStorage.setItem('tatanka_trial_start', String(Date.now()));
+    // Mostra subito il banner trial senza aspettare il reload
+    _showTrialBarNow();
   }
   if(APP.profile && APP.profile.macros) { showMainDashboard(); return; }
   currentStep = 1;
@@ -13325,9 +13326,9 @@ function ricettaRestart() {
 
 const STRIPE_LINK   = 'https://buy.stripe.com/3cIaEX2GZfnVgUIcJ52sM00';
 const APP_BASE_URL  = 'https://tatankanutripro.github.io/tatanka';
-const TRIAL_MS      =  0;  // TEST: trial AZZERATO → paywall immediato all'apertura
-const PRO_MS        =  2 * 24 * 60 * 60 * 1000;  // TEST: 2 giorni invece di 30
-const RENEW_WARN    = 3  * 24 * 60 * 60 * 1000;  // avviso rinnovo 3gg prima
+const TRIAL_MS      = 14 * 24 * 60 * 60 * 1000;  // 14 giorni di prova gratuita
+const PRO_MS        = 30 * 24 * 60 * 60 * 1000;  // 30 giorni abbonamento PRO
+const RENEW_WARN    =  5 * 24 * 60 * 60 * 1000;  // avviso rinnovo 5gg prima
 
 let _proActive = false;
 
@@ -13385,15 +13386,23 @@ function _showProBar() {
   bar.className = 'pro-status-bar';
   try {
     const s = JSON.parse(localStorage.getItem('tatanka_pro') || '{}');
-    bar.textContent = s.exp
-      ? '⚡ TATANKA PRO ATTIVO · Scade il ' + _fmt(s.exp)
-      : '⚡ TATANKA PRO ATTIVO';
+    if (s.exp) {
+      const daysLeft = Math.max(1, Math.ceil((s.exp - Date.now()) / (1000*60*60*24)));
+      const daysUsed = 30 - daysLeft;
+      bar.innerHTML =
+        '⚡ TATANKA PRO ATTIVO &nbsp;·&nbsp; '
+        + '<span style="background:rgba(255,255,255,0.2);border-radius:99px;padding:2px 10px;font-weight:800;">'
+        + daysLeft + ' giorni rimanenti</span>'
+        + ' &nbsp;·&nbsp; Prossimo rinnovo: <strong>' + _fmt(s.exp) + '</strong>';
+    } else {
+      bar.textContent = '⚡ TATANKA PRO ATTIVO';
+    }
   } catch(e) { bar.textContent = '⚡ TATANKA PRO ATTIVO'; }
   const app = document.getElementById('app');
   if (app) app.prepend(bar);
 }
 
-// ── Banner trial (giorni 1-3, tutto libero) ──────────────────
+// ── Banner trial (giorni 1-14, tutto libero) ──────────────────
 function _showTrialBar(daysLeft, hoursLeft) {
   // Rimuovi il vecchio banner se esiste (per aggiornare il conteggio)
   const old = document.getElementById('trial-bar');
@@ -13401,11 +13410,15 @@ function _showTrialBar(daysLeft, hoursLeft) {
   const bar = document.createElement('div');
   bar.id = 'trial-bar';
   bar.className = 'trial-bar';
-  // daysLeft è sempre >= 1 grazie a Math.ceil (il paywall scatta prima di 0)
-  let label = daysLeft >= 2
-    ? '<span class="trial-days">' + daysLeft + ' giorni gratuiti</span>'
-    : '<span class="trial-days" style="background:rgba(211,47,47,0.4);">⚠️ Ultimo giorno gratuito!</span>';
-  bar.innerHTML = '🆓 Prova gratuita: ' + label +
+  let label;
+  if (daysLeft >= 2) {
+    label = '<span class="trial-days">🗓️ ' + daysLeft + ' giorni gratuiti rimasti</span>';
+  } else if (daysLeft === 1) {
+    label = '<span class="trial-days" style="background:rgba(211,47,47,0.4);">⚠️ Ultimo giorno gratuito!</span>';
+  } else {
+    label = '<span class="trial-days" style="background:rgba(211,47,47,0.4);">⏰ ' + hoursLeft + ' ore rimaste</span>';
+  }
+  bar.innerHTML = '🆓 Prova gratuita 14 giorni: ' + label +
     ' &nbsp;<button class="trial-cta" onclick="showProOverlay()">Abbonati →</button>';
   const app = document.getElementById('app');
   if (app) app.prepend(bar);
@@ -13442,10 +13455,10 @@ function _showHardPaywall(isRenewal) {
   const hw = document.getElementById('hard-paywall');
   if (!hw) return;
 
-  const titleText = isRenewal ? 'Abbonamento scaduto' : 'Sblocca TATANKA Pro';
+  const titleText = isRenewal ? 'Abbonamento scaduto' : 'Prova gratuita terminata';
   const subText   = isRenewal
-    ? 'Il tuo abbonamento è terminato. Rinnova per continuare ad accedere a tutte le funzionalità.'
-    : 'Il periodo di prova è terminato. Abbonati per continuare a usare TATANKA Nutrition Pro.';
+    ? 'Il tuo abbonamento di 30 giorni è terminato. Rinnova per continuare ad accedere a tutte le funzionalità.'
+    : 'I tuoi 14 giorni di prova gratuita sono terminati. Abbonati per continuare a usare TATANKA Nutrition Pro.';
 
   hw.innerHTML =
     '<div style="max-width:400px;width:100%;margin:0 auto;padding:28px 20px 40px;">'
@@ -13561,6 +13574,22 @@ function initProSystem() {
       + '<button onclick="location.reload()" style="background:#c9a227;color:#111;border:none;border-radius:12px;padding:12px 24px;font-size:14px;font-weight:800;cursor:pointer;">Ricarica →</button>';
     document.body.appendChild(msg);
     return;
+  }
+
+  // ── CONTROLLO SANITÀ: corregge trial_start corrotti da versioni precedenti ──
+  // Se trial_start esiste ma non esiste nessun profilo utente reale (APP.profile),
+  // significa che il trial era stato settato durante i test senza mai completare
+  // l'onboarding → resetta trial_start per ripartire da zero correttamente.
+  const trialRawCheck = localStorage.getItem('tatanka_trial_start');
+  if (trialRawCheck) {
+    const elapsed = Date.now() - parseInt(trialRawCheck, 10);
+    // Se il trial risulta scaduto MA non c'è nessun profilo completato → era un test
+    const hasProfile = !!localStorage.getItem('tatanka_state');
+    const hasPro = !!localStorage.getItem('tatanka_pro');
+    if (elapsed >= TRIAL_MS && !hasProfile && !hasPro) {
+      // Trial "bruciato" senza aver mai usato l'app → lo resettiamo
+      localStorage.removeItem('tatanka_trial_start');
+    }
   }
 
   // ══════════════════════════════════════════════════════════════
