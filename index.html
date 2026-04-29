@@ -1512,10 +1512,11 @@ function collectStep3() {
   // Set bf_obiettivo automatically based on current BF and goal
   if(!p.bf_obiettivo) {
     const bf = p.bf_attuale || 20;
-    if(p.obiettivo==='dimagrimento')   p.bf_obiettivo = Math.max(bf-15, p.sesso==='M'?10:17);
-    else if(p.obiettivo==='massa')     p.bf_obiettivo = Math.min(bf+3, 25);
-    else if(p.obiettivo==='peaking')   p.bf_obiettivo = p.sesso==='M'?6:12;
-    else                               p.bf_obiettivo = bf;
+    if(p.obiettivo==='dimagrimento')     p.bf_obiettivo = Math.max(bf-15, p.sesso==='M'?10:17);
+    else if(p.obiettivo==='massa')       p.bf_obiettivo = Math.min(bf+3, 25);
+    else if(p.obiettivo==='peaking')     p.bf_obiettivo = p.sesso==='M'?6:12;
+    else if(p.obiettivo==='recomposizione') p.bf_obiettivo = Math.max(bf-10, p.sesso==='M'?12:18);
+    else                                 p.bf_obiettivo = bf; // mantenimento: target = BF attuale
   }
   return true;
 }
@@ -5261,7 +5262,11 @@ function calcMacros(profile) {
   const kcalActual=Math.round(pro*4+fat*9+cho*4);
   const water=Math.round((profile.peso||70)*0.033*10)/10;
   const choPlusTraining=cho+30, kcalTraining=Math.round(pro*4+fat*9+choPlusTraining*4);
-  const bfKg=(profile.peso||70)*((profile.bf_attuale||20)-(profile.bf_obiettivo||15))/100;
+  // bfKg: se mantenimento bf_obiettivo = bf_attuale (delta = 0 = nessun cambio di peso)
+  const bfKg=(profile.peso||70)*((profile.bf_attuale||20)-(
+    profile.bf_obiettivo != null ? profile.bf_obiettivo :
+      (obj === 'mantenimento' ? (profile.bf_attuale||20) : 15)
+  ))/100;
 
   // Velocità di perdita/guadagno settimanale basata su evidenze scientifiche:
   // - Dimagrimento: 0.5-1% BW/sett (ISSN). Con BF alto si perde più veloce.
@@ -5294,6 +5299,8 @@ function calcMacros(profile) {
     weeksToGoal = Math.max(12, Math.ceil(Math.abs(bfKg) / Math.max(weekly, 0.1)));
   } else if(obj === 'peaking') {
     weeksToGoal = Math.max(8, Math.ceil(Math.abs(bfKg) / Math.max(weekly, 0.1)));
+  } else if(obj === 'mantenimento') {
+    weeksToGoal = 12; // ciclo trimestrale fisso di monitoraggio
   } else {
     weeksToGoal = Math.max(4, Math.ceil(Math.abs(bfKg) / Math.max(weekly, 0.1)));
   }
@@ -5964,15 +5971,19 @@ function renderDashboard() {
         }
 
       } else if(_obj2 === 'massa') {
-        // TARGET: peso >= tPeso (aumentare massa)
-        goalReached = (_pesoForGoal >= _tPeso - 0.2) || weeksRemaining <= 0;
+        // TARGET MASSA: peso finale = pesoInizio + (settimane * ritmoSettimanale)
+        // Il ritmo dipende dal somatotipo (ecto 0.4, meso 0.3, endo 0.2 kg/sett)
+        var _somoM   = p.somatotipo || 'mesomorfo';
+        var _paceM   = _somoM === 'ectomorfo' ? 0.40 : _somoM === 'endomorfo' ? 0.20 : 0.30;
+        var _tPesoM  = Math.round((_pesoP + wt * _paceM) * 10) / 10; // peso target a fine bulk
+        goalReached = (_pesoForGoal >= _tPesoM - 0.2) || weeksRemaining <= 0;
         if(goalReached) {
           weeksNeeded = 0; pct = 100; goalLbl = '🎉 Raggiunto!';
         } else {
-          var _rimasto = _tPeso - _pesoForGoal;
-          weeksNeeded = Math.max(1, Math.ceil(_rimasto / _pace));
-          var _delta = _tPeso - _pesoP;
-          var _fatto = _pesoForGoal - _pesoP;
+          var _rimasto = _tPesoM - _pesoForGoal;
+          weeksNeeded = Math.max(1, Math.ceil(Math.max(0, _rimasto) / _paceM));
+          var _delta   = _tPesoM - _pesoP;
+          var _fatto   = _pesoForGoal - _pesoP;
           pct = _delta > 0 ? Math.min(100, Math.max(0, Math.round(_fatto / _delta * 100))) : 0;
           goalLbl = weeksNeeded === 1 ? '1 sett.' : weeksNeeded + ' sett.';
         }
@@ -5993,12 +6004,13 @@ function renderDashboard() {
         }
 
       } else {
-        // MANTENIMENTO: stare entro ±2 kg dal peso del profilo
+        // MANTENIMENTO: monitoraggio continuo entro ±2 kg dal peso profilo
         var _scost   = Math.round((_pesoForGoal - _pesoP) * 10) / 10;
         var _inRange = Math.abs(_scost) <= 2;
-        goalReached  = _inRange;
-        weeksNeeded  = 0;
-        pct = _inRange ? 100 : Math.max(0, Math.round((1 - Math.min(1, Math.abs(_scost) / 10)) * 100));
+        goalReached  = false; // mantenimento = fase continuativa, non ha un traguardo
+        weeksNeeded  = weeksRemaining; // sett. rimanenti al prossimo reset del ciclo 12-sett.
+        // Progresso = avanzamento nel ciclo trimestrale corrente
+        pct = Math.min(100, Math.round(weeksElapsed / Math.max(wt, 12) * 100));
         goalLbl = _inRange ? '✅ Stabile' : (_scost > 0 ? '+' + _scost : '' + _scost) + ' kg';
       }
 
@@ -6018,7 +6030,7 @@ function renderDashboard() {
       }
       var fmtDate   = function(d){ if(!d||isNaN(d.getTime())) return ''; return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear(); };
       var checkDate = new Date(Date.now() + nxt * 7*24*3600*1000);
-      var goalDate  = (goalReached || weeksNeeded === 0) ? null : new Date(Date.now() + weeksNeeded * 7*24*3600*1000);
+      var goalDate  = (goalReached || weeksNeeded === 0 || _obj2 === 'mantenimento') ? null : new Date(Date.now() + weeksNeeded * 7*24*3600*1000);
       var chkLbl    = nxt === 1 ? '1 sett.' : nxt + ' sett.';
       var barColor = goalReached ? '#2e7d32' : (_obj2==='mantenimento' ? '#e65100' : 'var(--tatanka-red)');
       return '<div style="background:'+(goalReached?'rgba(46,125,50,0.06)':'#fff')+';border-radius:12px;padding:12px 14px;border:1px solid '+(goalReached?'rgba(46,125,50,0.35)':'var(--border)')+';display:flex;flex-direction:column;gap:6px;">'
@@ -6083,94 +6095,240 @@ function renderDashboard() {
           else{                        phaseIcon='🛡️'; phaseLabel='Mantenimento'; phaseColor='#e65100'; phaseBg='rgba(230,81,0,0.05)'; phaseBorder='rgba(230,81,0,0.25)'; }
           /* Contenuto specifico per fase */
           var statusHtml = '';
+
+          // ── Variabili comuni a tutti gli obiettivi ──────────────────
+          var _leanNowAll  = Math.round(pesoAtt * (1 - bfAtt/100) * 10) / 10;  // massa magra oggi
+          var _fatNowAll   = Math.round((pesoAtt - _leanNowAll)   * 10) / 10;  // grasso oggi
+          var _leanTgtAll  = Math.round(pesoAtt * (1 - bfObj/100) * 10) / 10;  // lean a BF target (stesso peso)
+          var _fatTgtAll   = Math.round((pesoAtt - _leanTgtAll)   * 10) / 10;  // grasso a BF target
+
+          // ────────────────────────────────────────────────────────────
+          // 🔥 DIMAGRIMENTO
+          // Logica: l'utente parte da pesoAtt con bfAtt%, vuole raggiungere bfObj%
+          // Il peso target si calcola preservando la massa magra attuale
+          // ────────────────────────────────────────────────────────────
           if(obj2==='dimagrimento'){
-            var gramDay = Math.round(paceKg*1000/7);
+            var _leanD    = _leanNowAll;                                          // lean invariata
+            var _tPesoD   = Math.round(_leanD / (1 - bfObj/100) * 10) / 10;     // peso target
+            var _deltaKgD = Math.round((pesoAtt - _tPesoD) * 10) / 10;          // kg da perdere totali
+            var _rimastoD = Math.round(Math.max(0, pesoAtt - _tPesoD) * 10) / 10; // kg ancora da perdere
+            var _persDeltaBF = Math.round((bfAtt - bfObj) * 10) / 10;
+            // Ritmo: 0.5-1% del peso corporeo a settimana (ISSN evidence-based)
+            var _ritmoD   = Math.round(pesoAtt * 0.007 * 10) / 10;               // ~0.7% BW/sett
+            var _settD    = _ritmoD > 0 ? Math.ceil(_rimastoD / _ritmoD) : wLeft;
+            var _gramD    = Math.round(_ritmoD * 1000 / 7);                       // g/giorno deficit
+            // Deficit calorico stimato (1 kg grasso ≈ 7700 kcal)
+            var _deficitD = Math.round(_ritmoD * 7700 / 7);                       // kcal/die
             statusHtml =
               '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
               +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">Adesso</span>'
-              +'<span style="font-size:11px;font-weight:800;color:var(--text-primary);">'+pesoAtt+pesoSrcLabel+' · '+bfAtt+'% BF</span>'
+              +'<span style="font-size:11px;font-weight:800;color:var(--text-primary);">'+pesoAtt+' kg'+pesoSrcLabel+' · '+bfAtt+'% BF</span>'
               +'</div>'
               +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
-              +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">Devi arrivare a</span>'
-              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">'+tPeso+' kg · '+bfObj+'% BF</span>'
+              +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">Target finale</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">'+_tPesoD+' kg · '+bfObj+'% BF</span>'
               +'</div>'
               +'<div style="background:'+phaseBg+';border:1px solid '+phaseBorder+';border-radius:7px;padding:7px 10px;margin-bottom:4px;">'
               +'<div style="display:flex;justify-content:space-between;align-items:center;">'
-              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Da perdere</span>'
-              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">−'+Math.abs(deltaPeso)+' kg (−'+Math.abs(deltaBF)+'% BF)</span>'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Grasso da perdere</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">−'+_deltaKgD+' kg (−'+_persDeltaBF+'% BF)</span>'
               +'</div>'
               +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">'
-              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Ritmo</span>'
-              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">~'+paceKg+' kg/sett · ~'+gramDay+'g/die</span>'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Massa magra preservata</span>'
+              +'<span style="font-size:11px;font-weight:800;color:var(--green);">'+_leanD+' kg (invariata)</span>'
+              +'</div>'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Ritmo · Deficit stimato</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">−'+_ritmoD+' kg/sett · −'+_deficitD+' kcal/die</span>'
+              +'</div>'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Ancora da perdere</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">−'+_rimastoD+' kg (~'+_settD+' sett.)</span>'
               +'</div>'
               +'</div>';
+
+          // ────────────────────────────────────────────────────────────
+          // 💪 AUMENTO MASSA
+          // Logica: target = peso inizio + (sett. pianificate × ritmo somatotipo)
+          // 70% guadagno = muscolo, 30% = grasso (clean bulk, ISSN)
+          // ────────────────────────────────────────────────────────────
           } else if(obj2==='massa'){
-            var kgDa = Math.round((tPeso - pesoAtt)*10)/10;
-            var paceM = Math.round(Math.min(0.5, Math.abs(kgDa)/wLeft)*100)/100;
+            var _somoMI    = p.somatotipo || 'mesomorfo';
+            var _paceMI    = _somoMI === 'ectomorfo' ? 0.40 : _somoMI === 'endomorfo' ? 0.20 : 0.30;
+            var _tPesoMI   = Math.round((pesoProfile + wLeft * _paceMI) * 10) / 10;
+            var _totGainM  = Math.round((_tPesoMI - pesoProfile) * 10) / 10;
+            var _muscleGain= Math.round(_totGainM * 0.70 * 10) / 10;
+            var _fatGain   = Math.round(_totGainM * 0.30 * 10) / 10;
+            var _leanTgtM  = Math.round((_leanNowAll + _muscleGain) * 10) / 10;
+            var _bfFinaleM = Math.round((1 - _leanTgtM / _tPesoMI) * 1000) / 10;
+            var _rimastoM  = Math.round(Math.max(0, _tPesoMI - pesoAtt) * 10) / 10;
+            // Surplus calorico stimato (0.3 kg/sett ≈ +330 kcal/die)
+            var _surplusM  = Math.round(_paceMI * 7700 / 7);
             statusHtml =
               '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
               +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">Adesso</span>'
-              +'<span style="font-size:11px;font-weight:800;color:var(--text-primary);">'+pesoAtt+pesoSrcLabel+' · '+bfAtt+'% BF</span>'
+              +'<span style="font-size:11px;font-weight:800;color:var(--text-primary);">'+pesoAtt+' kg'+pesoSrcLabel+' · '+bfAtt+'% BF · '+_leanNowAll+' kg lean</span>'
               +'</div>'
               +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
-              +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">Devi arrivare a</span>'
-              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">'+tPeso+' kg · '+bfObj+'% BF</span>'
+              +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">Target a fine bulk</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">'+_tPesoMI+' kg · ~'+_bfFinaleM+'% BF</span>'
               +'</div>'
               +'<div style="background:'+phaseBg+';border:1px solid '+phaseBorder+';border-radius:7px;padding:7px 10px;margin-bottom:4px;">'
               +'<div style="display:flex;justify-content:space-between;align-items:center;">'
-              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Da guadagnare</span>'
-              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">+'+Math.abs(kgDa)+' kg massa</span>'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Massa magra: adesso → target</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">'+_leanNowAll+' → '+_leanTgtM+' kg (+'+_muscleGain+' kg)</span>'
               +'</div>'
               +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">'
-              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Surplus ideale</span>'
-              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">~'+paceM+' kg/sett</span>'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Grasso accumulato (atteso)</span>'
+              +'<span style="font-size:11px;font-weight:800;color:var(--text-secondary);">+'+_fatGain+' kg (clean bulk 70/30)</span>'
+              +'</div>'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Ritmo · Surplus stimato</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">+'+_paceMI+' kg/sett · +'+_surplusM+' kcal/die</span>'
+              +'</div>'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Ancora da guadagnare</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">+'+_rimastoM+' kg ('+Math.ceil(_rimastoM/_paceMI)+' sett.)</span>'
               +'</div>'
               +'</div>';
+
+          // ────────────────────────────────────────────────────────────
+          // 🏆 PEAKING / DEFINIZIONE
+          // Logica: come dimagrimento MA con ritmo più aggressivo (gara ravvicinata)
+          // e mostra anche BMI + categoria peso se disponibile
+          // ────────────────────────────────────────────────────────────
           } else if(obj2==='peaking'){
-            var gramDayP = Math.round(paceKg*1000/7);
+            var _leanP    = _leanNowAll;
+            var _tPesoP   = Math.round(_leanP / (1 - bfObj/100) * 10) / 10;
+            var _deltaKgP = Math.round((pesoAtt - _tPesoP) * 10) / 10;
+            var _rimastoP = Math.round(Math.max(0, pesoAtt - _tPesoP) * 10) / 10;
+            var _deltaBFP = Math.round((bfAtt - bfObj) * 10) / 10;
+            // Peaking: ritmo più aggressivo 0.8-1% BW/sett
+            var _ritmoP   = Math.round(pesoAtt * 0.009 * 10) / 10;
+            var _settP    = _ritmoP > 0 ? Math.ceil(_rimastoP / _ritmoP) : wLeft;
+            var _deficitP = Math.round(_ritmoP * 7700 / 7);
+            // Stima acqua da eliminare (water cut finale ≈ 1-2% BW)
+            var _waterP   = Math.round(pesoAtt * 0.015 * 10) / 10;
+            var _pesoGaraP = Math.round((_tPesoP - _waterP) * 10) / 10;
             statusHtml =
               '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
               +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">Adesso</span>'
-              +'<span style="font-size:11px;font-weight:800;color:var(--text-primary);">'+pesoAtt+pesoSrcLabel+' · '+bfAtt+'%</span>'
+              +'<span style="font-size:11px;font-weight:800;color:var(--text-primary);">'+pesoAtt+' kg'+pesoSrcLabel+' · '+bfAtt+'% BF</span>'
               +'</div>'
               +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
-              +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">Target gara</span>'
-              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">'+tPeso+' kg · '+bfObj+'% BF</span>'
+              +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">Target gara (asciutto)</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">'+_tPesoP+' kg · '+bfObj+'% BF</span>'
               +'</div>'
               +'<div style="background:'+phaseBg+';border:1px solid '+phaseBorder+';border-radius:7px;padding:7px 10px;margin-bottom:4px;">'
               +'<div style="display:flex;justify-content:space-between;align-items:center;">'
-              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Da eliminare</span>'
-              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">−'+Math.abs(deltaPeso)+' kg grasso</span>'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Grasso da eliminare</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">−'+_deltaKgP+' kg (−'+_deltaBFP+'% BF)</span>'
               +'</div>'
               +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">'
-              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Deficit</span>'
-              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">~'+paceKg+' kg/sett · ~'+gramDayP+'g/die</span>'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Massa magra preservata</span>'
+              +'<span style="font-size:11px;font-weight:800;color:var(--green);">'+_leanP+' kg</span>'
+              +'</div>'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Ritmo · Deficit stimato</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">−'+_ritmoP+' kg/sett · −'+_deficitP+' kcal/die</span>'
+              +'</div>'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Ancora da perdere</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">−'+_rimastoP+' kg (~'+_settP+' sett.)</span>'
+              +'</div>'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Peso gara stimato (−acqua)</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">~'+_pesoGaraP+' kg</span>'
               +'</div>'
               +'</div>';
+
+          // ────────────────────────────────────────────────────────────
+          // ⚖️ RICOMPOSIZIONE
+          // Logica: peso INVARIATO, BF scende (grasso → muscolo)
+          // Ritmo: ~0.5% BF/mese è evidence-based per naturai
+          // ────────────────────────────────────────────────────────────
           } else if(obj2==='recomposizione'){
+            var _deltaFatR  = Math.round((_fatNowAll - _fatTgtAll) * 10) / 10;    // kg grasso da perdere
+            var _deltaLeanR = Math.round((_leanTgtAll - _leanNowAll) * 10) / 10;  // kg muscolo da guadagnare
+            var _deltaBFR   = Math.round((bfAtt - bfObj) * 10) / 10;
+            // Ritmo recomposizione: ~0.5% BF al mese per natural (≈0.12% BF/sett)
+            var _bfPaceR    = 0.12; // % BF/sett
+            var _settR      = Math.ceil(Math.max(0, bfAtt - bfObj) / _bfPaceR);
+            // Deficit calorico lieve (ricomp. si fa a manutenzione ±100 kcal)
+            var _kcalRango  = '−100 / +100 kcal';
             statusHtml =
               '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
-              +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">Peso (stabile)</span>'
-              +'<span style="font-size:11px;font-weight:800;color:var(--text-primary);">'+pesoAtt+' kg</span>'
+              +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">Peso (rimane invariato)</span>'
+              +'<span style="font-size:11px;font-weight:800;color:var(--text-primary);">'+pesoAtt+' kg'+pesoSrcLabel+'</span>'
               +'</div>'
               +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
-              +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">BF target</span>'
-              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">'+bfAtt+'% → '+bfObj+'%</span>'
+              +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">BF: adesso → target</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">'+bfAtt+'% → '+bfObj+'% (−'+_deltaBFR+'%)</span>'
               +'</div>'
-              +'<div style="background:'+phaseBg+';border:1px solid '+phaseBorder+';border-radius:7px;padding:5px 7px;margin-bottom:4px;">'
-              +'<span style="font-size:8px;color:var(--text-muted);">Grasso → muscolo (peso invariato)</span>'
-              +'<div style="font-size:10px;font-weight:800;color:'+phaseColor+';margin-top:2px;">−'+Math.abs(deltaBF)+'% BF · +massa magra</div>'
+              +'<div style="background:'+phaseBg+';border:1px solid '+phaseBorder+';border-radius:7px;padding:7px 10px;margin-bottom:4px;">'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Massa magra: adesso → target</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">'+_leanNowAll+' → '+_leanTgtAll+' kg (+'+_deltaLeanR+' kg)</span>'
+              +'</div>'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Grasso da eliminare</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">−'+_deltaFatR+' kg (grasso → muscolo)</span>'
+              +'</div>'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Ritmo stimato</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">~'+_bfPaceR+'% BF/sett · ~'+_settR+' sett. totali</span>'
+              +'</div>'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Calorie (manutenzione ±)</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">'+_kcalRango+' kcal/die</span>'
+              +'</div>'
               +'</div>';
+
+          // ────────────────────────────────────────────────────────────
+          // 🛡️ MANTENIMENTO
+          // Logica: ciclo trimestrale 12 sett., range ±2 kg dal peso profilo
+          // Mostra BMI attuale, trend e stato semaforo
+          // ────────────────────────────────────────────────────────────
           } else {
+            var _scostM    = Math.round((pesoAtt - pesoProfile) * 10) / 10;
+            var _inRangeM  = Math.abs(_scostM) <= 2;
+            var _stColor   = _inRangeM ? '#2e7d32' : (_scostM > 2 ? '#c62828' : '#1565c0');
+            var _stIcon    = _inRangeM ? '✅' : (_scostM > 2 ? '⚠️' : '⬇️');
+            var _stLabel   = _inRangeM ? 'In range (±2 kg)' : (_scostM > 2 ? 'Sovrappeso di +'+_scostM+' kg' : 'Sottopeso di '+_scostM+' kg');
+            // BMI
+            var _altM  = (p.altezza || 170) / 100;
+            var _bmiM  = Math.round(pesoAtt / (_altM * _altM) * 10) / 10;
+            var _bmiLbl= _bmiM < 18.5 ? 'Sottopeso' : _bmiM < 25 ? 'Normopeso ✅' : _bmiM < 30 ? 'Sovrappeso' : 'Obesità';
+            // Calorie: a manutenzione = TDEE stimato (±0 kcal)
             statusHtml =
               '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
-              +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">Peso target</span>'
-              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">'+pesoAtt+' kg</span>'
+              +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">Peso di riferimento</span>'
+              +'<span style="font-size:11px;font-weight:800;color:var(--text-primary);">'+pesoProfile+' kg</span>'
               +'</div>'
-              +'<div style="background:'+phaseBg+';border:1px solid '+phaseBorder+';border-radius:7px;padding:5px 7px;margin-bottom:4px;">'
-              +'<span style="font-size:9px;color:var(--text-muted);">Mantieni peso e composizione corporea</span>'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+              +'<span style="font-size:11px;font-weight:600;color:var(--text-secondary);">Oggi'+pesoSrcLabel+'</span>'
+              +'<span style="font-size:11px;font-weight:800;color:var(--text-primary);">'+pesoAtt+' kg · '+bfAtt+'% BF · '+_leanNowAll+' kg lean</span>'
+              +'</div>'
+              +'<div style="background:'+phaseBg+';border:1px solid '+phaseBorder+';border-radius:7px;padding:7px 10px;margin-bottom:4px;">'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Range tolleranza</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';"> '+(pesoProfile-2)+' – '+(pesoProfile+2)+' kg</span>'
+              +'</div>'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Stato attuale</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+_stColor+';">'+_stIcon+' '+_stLabel+'</span>'
+              +'</div>'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">BMI attuale</span>'
+              +'<span style="font-size:11px;font-weight:800;color:var(--text-primary);">'+_bmiM+' – '+_bmiLbl+'</span>'
+              +'</div>'
+              +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;">'
+              +'<span style="font-size:10px;color:var(--text-muted);font-weight:600;">Calorie</span>'
+              +'<span style="font-size:11px;font-weight:800;color:'+phaseColor+';">A manutenzione (±0 kcal/die)</span>'
+              +'</div>'
               +'</div>';
           }
+
           return '<div style="background:'+phaseBg+';border-radius:8px;padding:7px 8px;border:1px solid '+phaseBorder+';">'
             +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">'
             +'<div style="font-size:7px;font-weight:700;color:'+phaseColor+';text-transform:uppercase;letter-spacing:0.4px;">'+phaseIcon+' '+phaseLabel+'</div>'
