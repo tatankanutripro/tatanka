@@ -5935,59 +5935,79 @@ function renderDashboard() {
       var _obj2   = p.obiettivo || 'mantenimento';
       var _todayP = (todayData && todayData.peso) ? todayData.peso : null;
       var _minFis = Math.round(_leanM * 1.02 * 10) / 10;
-      // ── Tre pesi con scopi diversi ──────────────────────────────────
-      // 1) Per confronto con il target (usa il valore reale inserito oggi)
+      // ── Peso per confronto con target (valore reale inserito oggi) ──
       var _pesoForGoal = _todayP !== null ? _todayP : _pesoP;
-      // 2) Per calcolo del BF (deve essere fisiologicamente coerente)
-      var _pesoForBF   = (_todayP && _todayP > _minFis) ? _todayP : _pesoP;
-      // 3) Per calcolo delle settimane necessarie (peso reale se > target, else goal)
-      var _pesoForWeeks = (_todayP && _todayP > _minFis) ? _todayP : _pesoP;
-      // ── Obiettivo raggiunto? ────────────────────────────────────────
-      var weightReached = false;
+      // ── BF calcolato sul peso di oggi (se fisiologicamente coerente) ─
+      var _bfToday = (_todayP && _todayP > _minFis)
+                      ? Math.max(3, Math.round((1 - _leanM / _todayP) * 1000) / 10)
+                      : _bfP;
+      // ── Ritmo pianificato originale ──────────────────────────────────
+      var _pace    = (wt > 0 && Math.abs(_pesoP - _tPeso) > 0.01) ? Math.abs(_pesoP - _tPeso) / wt : 0.5;
+      var _bfPace  = (wt > 0 && Math.abs(_bfP - _bfObj) > 0.01)   ? Math.abs(_bfP - _bfObj) / wt   : 0.1;
+      // ────────────────────────────────────────────────────────────────
+      // LOGICA PER OBIETTIVO — goalReached, weeksNeeded, pct, goalLbl
+      // ────────────────────────────────────────────────────────────────
+      var goalReached, weeksNeeded, pct, goalLbl;
+
       if(_obj2 === 'dimagrimento' || _obj2 === 'peaking') {
-        weightReached = _pesoForGoal <= _tPeso + 0.2;  // raggiunto o superato
+        // TARGET: peso <= tPeso (perdere peso/grasso)
+        goalReached = (_pesoForGoal <= _tPeso + 0.2) || weeksRemaining <= 0;
+        if(goalReached) {
+          weeksNeeded = 0; pct = 100; goalLbl = '🎉 Raggiunto!';
+        } else {
+          var _rimasto = _pesoForGoal - _tPeso;
+          weeksNeeded = Math.max(1, Math.ceil(_rimasto / _pace));
+          var _delta = _pesoP - _tPeso;
+          var _fatto = _pesoP - _pesoForGoal;
+          pct = _delta > 0 ? Math.min(100, Math.max(0, Math.round(_fatto / _delta * 100))) : 0;
+          goalLbl = weeksNeeded === 1 ? '1 sett.' : weeksNeeded + ' sett.';
+        }
+
       } else if(_obj2 === 'massa') {
-        weightReached = _pesoForGoal >= _tPeso - 0.2;  // raggiunto o superato
+        // TARGET: peso >= tPeso (aumentare massa)
+        goalReached = (_pesoForGoal >= _tPeso - 0.2) || weeksRemaining <= 0;
+        if(goalReached) {
+          weeksNeeded = 0; pct = 100; goalLbl = '🎉 Raggiunto!';
+        } else {
+          var _rimasto = _tPeso - _pesoForGoal;
+          weeksNeeded = Math.max(1, Math.ceil(_rimasto / _pace));
+          var _delta = _tPeso - _pesoP;
+          var _fatto = _pesoForGoal - _pesoP;
+          pct = _delta > 0 ? Math.min(100, Math.max(0, Math.round(_fatto / _delta * 100))) : 0;
+          goalLbl = weeksNeeded === 1 ? '1 sett.' : weeksNeeded + ' sett.';
+        }
+
+      } else if(_obj2 === 'recomposizione') {
+        // TARGET: bfToday <= bfObj (stessa massa, meno grasso)
+        // Progresso basato sul BF%, non sul peso assoluto
+        goalReached = (_bfToday <= _bfObj + 0.5) || weeksRemaining <= 0;
+        if(goalReached) {
+          weeksNeeded = 0; pct = 100; goalLbl = '🎉 Raggiunto!';
+        } else {
+          var _bfDelta  = _bfP - _bfObj;
+          var _bfFatto  = _bfP - _bfToday;
+          pct = _bfDelta > 0 ? Math.min(100, Math.max(0, Math.round(_bfFatto / _bfDelta * 100))) : 0;
+          var _bfRimasto = _bfToday - _bfObj;
+          weeksNeeded = Math.max(1, Math.ceil(_bfRimasto / _bfPace));
+          goalLbl = weeksNeeded === 1 ? '1 sett.' : weeksNeeded + ' sett.';
+        }
+
       } else {
-        weightReached = weeksRemaining <= 0;
+        // MANTENIMENTO: stare entro ±2 kg dal peso del profilo
+        var _scost   = Math.round((_pesoForGoal - _pesoP) * 10) / 10;
+        var _inRange = Math.abs(_scost) <= 2;
+        goalReached  = _inRange;
+        weeksNeeded  = 0;
+        pct = _inRange ? 100 : Math.max(0, Math.round((1 - Math.min(1, Math.abs(_scost) / 10)) * 100));
+        goalLbl = _inRange ? '✅ Stabile' : (_scost > 0 ? '+' + _scost : '' + _scost) + ' kg';
       }
-      var goalReached = weightReached || weeksRemaining <= 0;
-      // ── Settimane necessarie basate sul peso di oggi ─────────────────
-      // Ritmo pianificato originale (kg/settimana)
-      var _pace = (wt > 0 && Math.abs(_pesoP - _tPeso) > 0)
-                    ? Math.abs(_pesoP - _tPeso) / wt
-                    : 0.5;
-      var weeksNeeded;
-      if(goalReached) {
-        weeksNeeded = 0;
-      } else if(_obj2 === 'dimagrimento' || _obj2 === 'peaking') {
-        weeksNeeded = Math.max(1, Math.ceil((_pesoForWeeks - _tPeso) / _pace));
-      } else if(_obj2 === 'massa') {
-        weeksNeeded = Math.max(1, Math.ceil((_tPeso - _pesoForWeeks) / _pace));
-      } else {
-        weeksNeeded = weeksRemaining;
-      }
-      // ── Percentuale progresso basata sul peso ───────────────────────
-      var pct;
-      if(goalReached) {
-        pct = 100;
-      } else if(_obj2 === 'dimagrimento' || _obj2 === 'peaking') {
-        var _delta = _pesoP - _tPeso;
-        var _fatto = _pesoP - _pesoForWeeks;
-        pct = _delta > 0 ? Math.min(100, Math.max(0, Math.round(_fatto / _delta * 100))) : 0;
-      } else if(_obj2 === 'massa') {
-        var _delta = _tPeso - _pesoP;
-        var _fatto = _pesoForWeeks - _pesoP;
-        pct = _delta > 0 ? Math.min(100, Math.max(0, Math.round(_fatto / _delta * 100))) : 0;
-      } else {
-        pct = wt > 0 ? Math.min(100, Math.round(weeksElapsed / wt * 100)) : 0;
-      }
+
       // ── Prossimo controllo ──────────────────────────────────────────
-      var effInt = goalReached ? 1 : Math.max(1, Math.min(2, Math.floor(weeksNeeded / 2)));
+      var effInt = (goalReached || weeksNeeded <= 2) ? 2
+                   : Math.max(1, Math.min(2, Math.floor(weeksNeeded / 2)));
       var nxt = effInt - (weeksElapsed % effInt || effInt);
       if(nxt <= 0) nxt = effInt;
       var isCheckDue = !goalReached && weeksElapsed > 0 && (weeksElapsed % effInt === 0);
-      // Nascondi il bottone se il controllo è già stato fatto questa settimana
       if(isCheckDue && APP.controlloHistory && APP.controlloHistory.length > 0) {
         var startOfWeek = new Date(weekStart.getTime() + weeksElapsed * 7*24*3600*1000);
         var endOfWeek   = new Date(startOfWeek.getTime() + 7*24*3600*1000);
@@ -5996,13 +6016,11 @@ function renderDashboard() {
         });
         if(alreadyDone) isCheckDue = false;
       }
-      var fmtDate = function(d){ if(!d || isNaN(d.getTime())) return ''; return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear(); };
+      var fmtDate   = function(d){ if(!d||isNaN(d.getTime())) return ''; return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear(); };
       var checkDate = new Date(Date.now() + nxt * 7*24*3600*1000);
-      // Data arrivo obiettivo: oggi + settimane necessarie (non più data fissa del piano)
-      var goalDate  = goalReached ? null : new Date(Date.now() + weeksNeeded * 7*24*3600*1000);
-      var chkLbl = nxt === 1 ? '1 sett.' : nxt + ' sett.';
-      var goalLbl = goalReached ? '🎉 Raggiunto!' : weeksNeeded === 1 ? '1 sett.' : weeksNeeded + ' sett.';
-      var barColor = goalReached ? '#2e7d32' : 'var(--tatanka-red)';
+      var goalDate  = (goalReached || weeksNeeded === 0) ? null : new Date(Date.now() + weeksNeeded * 7*24*3600*1000);
+      var chkLbl    = nxt === 1 ? '1 sett.' : nxt + ' sett.';
+      var barColor = goalReached ? '#2e7d32' : (_obj2==='mantenimento' ? '#e65100' : 'var(--tatanka-red)');
       return '<div style="background:'+(goalReached?'rgba(46,125,50,0.06)':'#fff')+';border-radius:12px;padding:12px 14px;border:1px solid '+(goalReached?'rgba(46,125,50,0.35)':'var(--border)')+';display:flex;flex-direction:column;gap:6px;">'
         +'<div style="display:flex;align-items:center;justify-content:space-between;">'
         +'<div style="font-size:9px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">🎯 Obiettivi</div>'
